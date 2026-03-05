@@ -17,7 +17,6 @@ createRoot(document.getElementById('root')).render(
         <Route path="/chaman" element={<ChamanPage />} />
         <Route path="/shabiba" element={<ShabibaPage />} />
         <Route path="/sumaiya" element={<SumaiyaPage />} />
-        <Route path="/tanvir/chatbot" element={<ChatbotPage />} />  
 
         <Route path="*" element={<App />} />
       </Routes>
