@@ -8,6 +8,7 @@ import ChamanPage from './chaman'
 import ShabibaPage from './shabiba'
 import SumaiyaPage from './sumaiya'
 import ChatbotPage from './tanvir/ChatbotPage.jsx'
+import CropMarketplace from './sumaiya/CropMarketplace.jsx'
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
@@ -17,7 +18,8 @@ createRoot(document.getElementById('root')).render(
         <Route path="/chaman" element={<ChamanPage />} />
         <Route path="/shabiba" element={<ShabibaPage />} />
         <Route path="/sumaiya" element={<SumaiyaPage />} />
-        <Route path="/tanvir/chatbot" element={<ChatbotPage />} />  
+        <Route path="/sumaiya/CropMarketplace" element={<CropMarketplace />} />
+        <Route path="/tanvir/chatbot" element={<ChatbotPage />} />
 
         <Route path="*" element={<App />} />
       </Routes>
