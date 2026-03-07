@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.jsx'
 import TanvirPage from './tanvir'
 import ChamanPage from './chaman'
+import SearchMapPage from './chaman/SearchMapPage'
 import ShabibaPage from './shabiba'
 import SumaiyaPage from './sumaiya'
 import ChatbotPage from './tanvir/ChatbotPage.jsx'
@@ -15,9 +16,10 @@ createRoot(document.getElementById('root')).render(
         <Route path="/" element={<App />} />
         <Route path="/tanvir" element={<TanvirPage />} />
         <Route path="/chaman" element={<ChamanPage />} />
+        <Route path="/chaman/search" element={<SearchMapPage />} />
         <Route path="/shabiba" element={<ShabibaPage />} />
         <Route path="/sumaiya" element={<SumaiyaPage />} />
-        <Route path="/tanvir/chatbot" element={<ChatbotPage />} />  
+        <Route path="/tanvir/chatbot" element={<ChatbotPage />} />
 
         <Route path="*" element={<App />} />
       </Routes>
