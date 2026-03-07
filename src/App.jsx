@@ -18,7 +18,10 @@ function App() {
             <Link to="/chaman/search">Chaman Search & Map</Link>
           </li>
           <li>
-            <Link to="/shabiba">Shabiba</Link>
+            <Link to="/shabiba/verification">Shabiba Verification</Link>
+          </li>
+                 <li>
+            <Link to="/shabiba/marketplace">Shabiba marketplace</Link>
           </li>
           <li>
             <Link to="/sumaiya">Sumaiya</Link>
