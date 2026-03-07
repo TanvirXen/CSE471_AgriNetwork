@@ -12,7 +12,10 @@ function App() {
             <Link to="/tanvir">Tanvir</Link>
           </li>
           <li>
-            <Link to="/chaman">Chaman</Link>
+            <Link to="/chaman">Chaman Chat</Link>
+          </li>
+          <li>
+            <Link to="/chaman/search">Chaman Search & Map</Link>
           </li>
           <li>
             <Link to="/shabiba/verification">Shabiba Verification</Link>

@@ -1,0 +1,1463 @@
+/* ============================================================
+   ChatNegotiation.css — AgriNetwork Bangladesh
+   Color Palette:
+     --color-dark:     #344e41  (Primary Dark  / Deep Forest)
+     --color-main:     #3a5a40  (Primary Main  / Evergreen)
+     --color-sage:     #588157  (Secondary     / Sage Leaf)
+     --color-blush:    #ffe5ec  (Accent / Soft / Blush Petal)
+     --color-mist:     #dad7cd  (Neutral / BG  / Mist Gray)
+   ============================================================ */
+
+/* ---------- Design Tokens ---------- */
+:root {
+  --color-dark:    #344e41;
+  --color-main:    #3a5a40;
+  --color-sage:    #588157;
+  --color-blush:   #ffe5ec;
+  --color-mist:    #dad7cd;
+
+  --color-white:   #ffffff;
+  --color-offwhite:#f7f5f2;
+  --color-border:  #c9c5bb;
+  --color-shadow:  rgba(52, 78, 65, 0.12);
+
+  --radius-sm:  6px;
+  --radius-md:  12px;
+  --radius-lg:  20px;
+  --radius-xl:  28px;
+
+  --transition: 0.22s ease;
+  --font-main: 'Inter', 'Segoe UI', sans-serif;
+}
+
+/* ---------- Reset & Base ---------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+.cn-page {
+  font-family: var(--font-main);
+  background: var(--color-offwhite);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   PRICE TICKER
+   ============================================================ */
+.cn-ticker {
+  background: linear-gradient(90deg, var(--color-dark) 0%, var(--color-main) 100%);
+  color: var(--color-white);
+  padding: 8px 0;
+  overflow: hidden;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 2px 6px var(--color-shadow);
+}
+
+.cn-ticker__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--color-sage);
+  padding: 2px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 14px;
+}
+
+.cn-ticker__dot {
+  width: 7px;
+  height: 7px;
+  background: var(--color-blush);
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
+.cn-ticker__track {
+  display: flex;
+  gap: 0;
+  align-items: center;
+  overflow: hidden;
+  width: 100%;
+}
+
+.cn-ticker__strip {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  animation: tickerScroll 28s linear infinite;
+  white-space: nowrap;
+  padding: 0 20px;
+}
+
+@keyframes tickerScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.cn-ticker__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.cn-ticker__item-name {
+  font-weight: 600;
+  color: var(--color-mist);
+}
+
+.cn-ticker__item-price {
+  font-weight: 700;
+  color: var(--color-white);
+}
+
+.cn-ticker__item-unit {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.55);
+}
+
+.cn-ticker__item-change {
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.cn-ticker__item-change.up {
+  color: #4ade80;
+}
+
+.cn-ticker__item-change.down {
+  color: #f87171;
+}
+
+.cn-ticker__divider {
+  color: rgba(255,255,255,0.25);
+  margin: 0 8px;
+  font-size: 1.1rem;
+}
+
+/* ============================================================
+   PAGE HEADER (Title bar)
+   ============================================================ */
+.cn-page-header {
+  background: var(--color-white);
+  border-bottom: 1.5px solid var(--color-border);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cn-page-header__title {
+  display: flex;
+  flex-direction: column;
+}
+
+.cn-page-header__title h1 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-dark);
+  line-height: 1.2;
+}
+
+.cn-page-header__title span {
+  font-size: 0.76rem;
+  color: var(--color-sage);
+  font-weight: 500;
+}
+
+.cn-page-header__badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cn-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cn-badge--active {
+  background: var(--color-blush);
+  color: var(--color-dark);
+}
+
+.cn-badge--deals {
+  background: var(--color-mist);
+  color: var(--color-main);
+}
+
+/* ============================================================
+   MAIN LAYOUT
+   ============================================================ */
+.cn-layout {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 112px);
+  overflow: hidden;
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.cn-sidebar {
+  width: 320px;
+  min-width: 280px;
+  max-width: 320px;
+  background: var(--color-white);
+  border-right: 1.5px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform var(--transition);
+}
+
+.cn-sidebar__header {
+  padding: 16px 16px 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cn-sidebar__search {
+  display: flex;
+  align-items: center;
+  background: var(--color-mist);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  gap: 8px;
+  transition: box-shadow var(--transition);
+}
+
+.cn-sidebar__search:focus-within {
+  box-shadow: 0 0 0 2px var(--color-sage);
+}
+
+.cn-sidebar__search input {
+  border: none;
+  background: transparent;
+  flex: 1;
+  font-size: 0.84rem;
+  color: var(--color-dark);
+  outline: none;
+  font-family: var(--font-main);
+}
+
+.cn-sidebar__search input::placeholder {
+  color: #9a9690;
+}
+
+.cn-sidebar__search-icon {
+  color: var(--color-sage);
+  font-size: 0.9rem;
+}
+
+.cn-sidebar__tabs {
+  display: flex;
+  padding: 10px 12px 0;
+  gap: 4px;
+}
+
+.cn-sidebar__tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #9a9690;
+  padding: 6px 4px;
+  border-bottom: 2.5px solid transparent;
+  transition: all var(--transition);
+  text-align: center;
+}
+
+.cn-sidebar__tab.active {
+  color: var(--color-main);
+  border-bottom-color: var(--color-main);
+}
+
+.cn-sidebar__tab:hover:not(.active) {
+  color: var(--color-sage);
+}
+
+.cn-sidebar__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.cn-sidebar__list::-webkit-scrollbar { width: 4px; }
+.cn-sidebar__list::-webkit-scrollbar-thumb { background: var(--color-mist); border-radius: 4px; }
+
+/* ---------- Conversation Item ---------- */
+.cn-conv-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all var(--transition);
+  position: relative;
+}
+
+.cn-conv-item:hover {
+  background: var(--color-offwhite);
+}
+
+.cn-conv-item.active {
+  background: rgba(88, 129, 87, 0.1);
+  border-left-color: var(--color-sage);
+}
+
+.cn-conv-item__avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.cn-conv-item__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-white);
+  background: linear-gradient(135deg, var(--color-sage), var(--color-dark));
+  flex-shrink: 0;
+}
+
+.cn-conv-item__online {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 11px;
+  height: 11px;
+  background: #4ade80;
+  border-radius: 50%;
+  border: 2px solid var(--color-white);
+}
+
+.cn-conv-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cn-conv-item__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.cn-conv-item__name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cn-conv-item__time {
+  font-size: 0.7rem;
+  color: #9a9690;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cn-conv-item__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.cn-conv-item__preview {
+  font-size: 0.78rem;
+  color: #7a7770;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.cn-unread-badge {
+  background: var(--color-main);
+  color: var(--color-white);
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  min-width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.cn-conv-item__role-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.cn-conv-item__role-tag.farmer {
+  background: rgba(88,129,87,0.15);
+  color: var(--color-sage);
+}
+
+.cn-conv-item__role-tag.vendor {
+  background: var(--color-blush);
+  color: #c4556a;
+}
+
+/* ============================================================
+   CHAT AREA
+   ============================================================ */
+.cn-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ---------- Chat Header ---------- */
+.cn-chat-header {
+  background: var(--color-white);
+  border-bottom: 1.5px solid var(--color-border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cn-chat-header__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-white);
+  background: linear-gradient(135deg, var(--color-sage), var(--color-dark));
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.cn-chat-header__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cn-chat-header__name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+
+.cn-chat-header__meta {
+  font-size: 0.74rem;
+  color: var(--color-sage);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cn-chat-header__status-dot {
+  width: 7px;
+  height: 7px;
+  background: #4ade80;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.cn-chat-header__actions {
+  display: flex;
+  gap: 4px;
+}
+
+.cn-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: var(--color-sage);
+  transition: background var(--transition), color var(--transition);
+}
+
+.cn-icon-btn:hover {
+  background: var(--color-mist);
+  color: var(--color-dark);
+}
+
+.cn-chat-header__crop-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(88,129,87,0.1);
+  border: 1px solid rgba(88,129,87,0.25);
+  border-radius: var(--radius-md);
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--color-main);
+}
+
+/* ---------- Deal Progress Banner ---------- */
+.cn-deal-banner {
+  background: linear-gradient(90deg, rgba(88,129,87,0.08) 0%, rgba(255,229,236,0.4) 100%);
+  border-bottom: 1px solid rgba(88,129,87,0.2);
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.cn-deal-banner__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-sage);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cn-deal-steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.cn-deal-steps::-webkit-scrollbar { display: none; }
+
+.cn-deal-step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cn-deal-step__circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #9a9690;
+  background: var(--color-white);
+  transition: all var(--transition);
+}
+
+.cn-deal-step.done .cn-deal-step__circle {
+  background: var(--color-main);
+  border-color: var(--color-main);
+  color: var(--color-white);
+}
+
+.cn-deal-step.active .cn-deal-step__circle {
+  background: var(--color-blush);
+  border-color: #c4556a;
+  color: #c4556a;
+  transform: scale(1.1);
+}
+
+.cn-deal-step__label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #9a9690;
+}
+
+.cn-deal-step.done .cn-deal-step__label,
+.cn-deal-step.active .cn-deal-step__label {
+  color: var(--color-dark);
+}
+
+.cn-deal-step__line {
+  height: 2px;
+  width: 24px;
+  background: var(--color-border);
+  flex-shrink: 0;
+  margin: 0 4px;
+  border-radius: 2px;
+}
+
+.cn-deal-step.done + .cn-deal-step .cn-deal-step__line,
+.cn-deal-step__line--done {
+  background: var(--color-sage);
+}
+
+/* ---------- Messages Area ---------- */
+.cn-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scroll-behavior: smooth;
+}
+
+.cn-messages::-webkit-scrollbar { width: 5px; }
+.cn-messages::-webkit-scrollbar-thumb { background: var(--color-mist); border-radius: 4px; }
+
+/* ---------- Date Divider ---------- */
+.cn-date-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 8px;
+}
+
+.cn-date-divider::before,
+.cn-date-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.cn-date-divider span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #9a9690;
+  background: var(--color-offwhite);
+  padding: 2px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+/* ---------- Message Bubble ---------- */
+.cn-msg-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 2px;
+  animation: msgIn 0.25s ease;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cn-msg-row.sent {
+  flex-direction: row-reverse;
+}
+
+.cn-msg-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-white);
+  background: linear-gradient(135deg, var(--color-sage), var(--color-dark));
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+
+.cn-msg-bubble {
+  max-width: 68%;
+  padding: 10px 14px;
+  border-radius: var(--radius-lg);
+  font-size: 0.87rem;
+  line-height: 1.5;
+  position: relative;
+  word-break: break-word;
+}
+
+.cn-msg-row.received .cn-msg-bubble {
+  background: var(--color-white);
+  color: var(--color-dark);
+  border-bottom-left-radius: var(--radius-sm);
+  box-shadow: 0 1px 4px var(--color-shadow);
+}
+
+.cn-msg-row.sent .cn-msg-bubble {
+  background: linear-gradient(135deg, var(--color-main), var(--color-dark));
+  color: var(--color-white);
+  border-bottom-right-radius: var(--radius-sm);
+  box-shadow: 0 1px 6px var(--color-shadow);
+}
+
+.cn-msg-timestamp {
+  font-size: 0.65rem;
+  opacity: 0.6;
+  margin-top: 4px;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+.cn-msg-row.received .cn-msg-timestamp {
+  justify-content: flex-start;
+}
+
+.cn-msg-stack {
+  display: flex;
+  flex-direction: column;
+  max-width: 72%;
+}
+
+.cn-msg-row.sent .cn-msg-stack {
+  align-items: flex-end;
+}
+
+/* ============================================================
+   NEGOTIATION CARD — embedded in chat
+   ============================================================ */
+.cn-neg-card {
+  background: var(--color-white);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  max-width: 320px;
+  width: 100%;
+  box-shadow: 0 2px 10px var(--color-shadow);
+  animation: msgIn 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.cn-neg-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  right: 0; height: 3px;
+}
+
+.cn-neg-card.offer::before   { background: linear-gradient(90deg, var(--color-main), var(--color-sage)); }
+.cn-neg-card.counter::before { background: linear-gradient(90deg, #c4556a, var(--color-blush)); }
+.cn-neg-card.accepted::before { background: linear-gradient(90deg, #4ade80, #16a34a); }
+.cn-neg-card.rejected::before { background: linear-gradient(90deg, #f87171, #dc2626); }
+
+.cn-neg-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+}
+
+.cn-neg-card.offer .cn-neg-card__badge {
+  background: rgba(58,90,64,0.1);
+  color: var(--color-main);
+}
+
+.cn-neg-card.counter .cn-neg-card__badge {
+  background: var(--color-blush);
+  color: #c4556a;
+}
+
+.cn-neg-card.accepted .cn-neg-card__badge {
+  background: rgba(74,222,128,0.15);
+  color: #16a34a;
+}
+
+.cn-neg-card.rejected .cn-neg-card__badge {
+  background: rgba(248,113,113,0.12);
+  color: #dc2626;
+}
+
+.cn-neg-card__crop {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-dark);
+  margin-bottom: 2px;
+}
+
+.cn-neg-card__detail {
+  font-size: 0.78rem;
+  color: #7a7770;
+  margin-bottom: 12px;
+}
+
+.cn-neg-card__prices {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.cn-neg-card__price-block {
+  flex: 1;
+  background: var(--color-offwhite);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.cn-neg-card__price-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9a9690;
+  margin-bottom: 2px;
+}
+
+.cn-neg-card__price-value {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-dark);
+}
+
+.cn-neg-card__price-unit {
+  font-size: 0.65rem;
+  color: #9a9690;
+}
+
+.cn-neg-card__arrow {
+  font-size: 1.2rem;
+  color: var(--color-sage);
+  flex-shrink: 0;
+}
+
+.cn-neg-card__market-ref {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.73rem;
+  color: var(--color-sage);
+  background: rgba(88,129,87,0.08);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  margin-bottom: 12px;
+}
+
+.cn-neg-card__market-ref strong {
+  color: var(--color-main);
+}
+
+.cn-neg-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.cn-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-main);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  border: none;
+  outline: none;
+}
+
+.cn-btn--primary {
+  background: linear-gradient(135deg, var(--color-main), var(--color-dark));
+  color: var(--color-white);
+  flex: 1;
+}
+
+.cn-btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(58,90,64,0.3);
+}
+
+.cn-btn--outline {
+  background: transparent;
+  border: 2px solid var(--color-sage);
+  color: var(--color-sage);
+  flex: 1;
+}
+
+.cn-btn--outline:hover {
+  background: rgba(88,129,87,0.08);
+}
+
+.cn-btn--accept {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  flex: 1;
+}
+
+.cn-btn--accept:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(34,197,94,0.3);
+}
+
+.cn-btn--reject {
+  background: transparent;
+  border: 2px solid #f87171;
+  color: #f87171;
+  flex: 1;
+}
+
+.cn-btn--reject:hover {
+  background: rgba(248,113,113,0.08);
+}
+
+.cn-btn--counter {
+  background: var(--color-blush);
+  color: #c4556a;
+  flex: 1;
+  border: 2px solid transparent;
+}
+
+.cn-btn--counter:hover {
+  border-color: #c4556a;
+}
+
+.cn-btn--sm {
+  padding: 5px 12px;
+  font-size: 0.76rem;
+}
+
+.cn-btn--ghost {
+  background: transparent;
+  color: var(--color-sage);
+  border: 1px solid var(--color-border);
+}
+
+.cn-btn--ghost:hover {
+  background: var(--color-mist);
+}
+
+.cn-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ============================================================
+   STATUS MESSAGES
+   ============================================================ */
+.cn-status-msg {
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 0.76rem;
+  color: #9a9690;
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.cn-status-msg.deal-closed {
+  background: rgba(74,222,128,0.1);
+  border: 1px solid rgba(74,222,128,0.3);
+  border-radius: var(--radius-md);
+  color: #16a34a;
+  font-style: normal;
+  font-weight: 600;
+  padding: 10px 16px;
+}
+
+/* ============================================================
+   INPUT PANEL
+   ============================================================ */
+.cn-input-panel {
+  background: var(--color-white);
+  border-top: 1.5px solid var(--color-border);
+  padding: 10px 16px;
+}
+
+/* Offer Mode Banner */
+.cn-offer-mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(88,129,87,0.08);
+  border: 1.5px solid rgba(88,129,87,0.25);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cn-offer-mode-banner__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-main);
+  flex: 1;
+}
+
+.cn-offer-mode-banner__close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-sage);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  transition: color var(--transition);
+}
+
+.cn-offer-mode-banner__close:hover { color: var(--color-dark); }
+
+.cn-offer-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cn-offer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cn-offer-field label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-sage);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cn-offer-field input,
+.cn-offer-field select {
+  background: var(--color-mist);
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-size: 0.84rem;
+  color: var(--color-dark);
+  font-family: var(--font-main);
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.cn-offer-field input:focus,
+.cn-offer-field select:focus {
+  border-color: var(--color-sage);
+}
+
+/* Message row */
+.cn-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.cn-input-row__field {
+  flex: 1;
+  background: var(--color-mist);
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-xl);
+  padding: 10px 16px;
+  font-size: 0.87rem;
+  color: var(--color-dark);
+  font-family: var(--font-main);
+  outline: none;
+  resize: none;
+  max-height: 100px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  line-height: 1.4;
+}
+
+.cn-input-row__field:focus {
+  border-color: var(--color-sage);
+  box-shadow: 0 0 0 3px rgba(88,129,87,0.1);
+}
+
+.cn-input-row__field::placeholder { color: #9a9690; }
+
+.cn-input-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cn-send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-main), var(--color-dark));
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-white);
+  font-size: 1rem;
+  transition: transform var(--transition), box-shadow var(--transition);
+  flex-shrink: 0;
+}
+
+.cn-send-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 3px 10px rgba(58,90,64,0.35);
+}
+
+.cn-send-btn:active { transform: scale(0.96); }
+
+.cn-input-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.cn-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #7a7770;
+  font-family: var(--font-main);
+  transition: all var(--transition);
+}
+
+.cn-toolbar-btn.offer-btn {
+  border-color: var(--color-sage);
+  color: var(--color-sage);
+}
+
+.cn-toolbar-btn.offer-btn:hover,
+.cn-toolbar-btn.offer-btn.active {
+  background: var(--color-sage);
+  color: var(--color-white);
+}
+
+.cn-toolbar-btn:hover:not(.offer-btn) {
+  background: var(--color-mist);
+  color: var(--color-dark);
+}
+
+/* ============================================================
+   TYPING INDICATOR
+   ============================================================ */
+.cn-typing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  color: #9a9690;
+  font-size: 0.76rem;
+  font-style: italic;
+}
+
+.cn-typing-dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.cn-typing-dots span {
+  width: 5px;
+  height: 5px;
+  background: var(--color-sage);
+  border-radius: 50%;
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+
+.cn-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.cn-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1; }
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.cn-empty-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #9a9690;
+  padding: 40px;
+  text-align: center;
+}
+
+.cn-empty-chat__icon {
+  font-size: 3rem;
+  opacity: 0.4;
+}
+
+.cn-empty-chat__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-sage);
+}
+
+.cn-empty-chat__sub {
+  font-size: 0.82rem;
+  max-width: 280px;
+}
+
+/* ============================================================
+   MODAL — Quick Offer
+   ============================================================ */
+.cn-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(52,78,65,0.45);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.18s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.cn-modal {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+  animation: slideUp 0.22s ease;
+  box-shadow: 0 20px 60px rgba(52,78,65,0.25);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cn-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.cn-modal__title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-dark);
+}
+
+.cn-modal__subtitle {
+  font-size: 0.76rem;
+  color: var(--color-sage);
+}
+
+.cn-modal__close {
+  background: var(--color-mist);
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-dark);
+  transition: background var(--transition);
+}
+
+.cn-modal__close:hover { background: var(--color-border); }
+
+.cn-modal__field {
+  margin-bottom: 14px;
+}
+
+.cn-modal__field label {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--color-sage);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 5px;
+}
+
+.cn-modal__field input,
+.cn-modal__field select,
+.cn-modal__field textarea {
+  width: 100%;
+  background: var(--color-mist);
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  color: var(--color-dark);
+  font-family: var(--font-main);
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.cn-modal__field input:focus,
+.cn-modal__field select:focus,
+.cn-modal__field textarea:focus {
+  border-color: var(--color-sage);
+}
+
+.cn-modal__field textarea { resize: none; min-height: 70px; }
+
+.cn-modal__grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.cn-modal__market-note {
+  background: rgba(88,129,87,0.08);
+  border: 1px solid rgba(88,129,87,0.2);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 0.78rem;
+  color: var(--color-main);
+}
+
+.cn-modal__market-note strong { color: var(--color-dark); }
+
+.cn-modal__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* ============================================================
+   MOBILE TOGGLE (hamburger for sidebar)
+   ============================================================ */
+.cn-mob-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-sage);
+  font-size: 1.3rem;
+  padding: 4px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  .cn-layout {
+    position: relative;
+    height: calc(100vh - 108px);
+  }
+
+  .cn-sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    width: 290px;
+    box-shadow: 4px 0 20px rgba(52,78,65,0.15);
+  }
+
+  .cn-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .cn-mob-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cn-msg-bubble {
+    max-width: 82%;
+  }
+
+  .cn-neg-card {
+    max-width: 280px;
+  }
+
+  .cn-chat-header__crop-tag {
+    display: none;
+  }
+
+  .cn-deal-banner {
+    padding: 6px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cn-offer-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .cn-modal__grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .cn-page-header__badges {
+    display: none;
+  }
+}
