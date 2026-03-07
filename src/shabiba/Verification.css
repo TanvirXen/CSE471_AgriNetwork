@@ -116,6 +116,9 @@
     background-color: var(--secondary);
     border-radius: 2px;
 }
+.verification-section {
+    margin-bottom: 2rem;
+}
 .upload-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -157,7 +160,7 @@
     margin-top: 0.4rem;
 }
 /* Selfie Section */
-.selfie-section {
+.selfie-section-box {
     background-color: rgba(255, 229, 236, 0.3);
     padding: 1rem;
     border-radius: 15px;
@@ -191,6 +194,7 @@
     cursor: pointer;
     transition: var(--transition);
     box-shadow: 0 4px 15px rgba(58, 90, 64, 0.3);
+    margin-top: 1rem;
 }
 .submit-btn:hover {
     background-color: var(--primary-dark);

@@ -7,9 +7,10 @@ import TanvirPage from './tanvir'
 import ChamanPage from './chaman'
 import ShabibaPage from './shabiba'
 import SumaiyaPage from './sumaiya'
-import ChatbotPage from './tanvir/ChatbotPage.jsx'
 import CropMarketplace from './sumaiya/CropMarketplace.jsx'
 import OrderHistory from './sumaiya/OrderHistory.jsx'
+import Marketplace from './shabiba/Marketplace.jsx'
+import Verification from './shabiba/Verification.jsx'
 
 
 
@@ -24,7 +25,8 @@ createRoot(document.getElementById('root')).render(
         <Route path="/sumaiya" element={<SumaiyaPage />} />
         <Route path="/sumaiya/CropMarketplace" element={<CropMarketplace />} />
         <Route path="/sumaiya/OrderHistory" element={<OrderHistory />} />
-        <Route path="/tanvir/chatbot" element={<ChatbotPage />} />
+        <Route path="/shabiba/marketplace" element={<Marketplace />} />
+        <Route path="/shabiba/verification" element={<Verification />} />
 
         <Route path="*" element={<App />} />
       </Routes>
