@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const AddressSchema = new mongoose.Schema(
   {
@@ -38,9 +39,16 @@ const UserProfileSchema = new mongoose.Schema(
     coverPhoto: { type: String, trim: true },
     bio: { type: String, trim: true, maxlength: 1000 },
     organizationName: { type: String, trim: true },
+    shopName: { type: String, trim: true },
     farmName: { type: String, trim: true },
     tradeLicenseNo: { type: String, trim: true },
+    productCategories: [{ type: String, trim: true }],
+    nidNumber: { type: String, trim: true },
     nidNumberMasked: { type: String, trim: true },
+    nidPhotos: {
+      front: { type: String, trim: true },
+      back: { type: String, trim: true },
+    },
     dateOfBirth: { type: Date },
     gender: {
       type: String,
@@ -131,6 +139,21 @@ const UserSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("passwordHash")) return next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+UserSchema.methods.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.passwordHash);
+};
 
 UserSchema.index({ "currentLocation.coordinates": "2dsphere" });
 UserSchema.index({ fullName: "text", phone: "text", email: "text", "profile.organizationName": "text" });

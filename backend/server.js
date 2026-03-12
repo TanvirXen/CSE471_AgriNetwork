@@ -1,3 +1,4 @@
+require("dotenv").config();
 const http = require("http");
 const app = require("./app");
 const mongoose = require("mongoose");
@@ -29,14 +30,28 @@ io.on("connection", (socket) => {
   });
 });
 
+console.log("Attempting to connect to MongoDB...");
+const obfuscatedUri = MONGO_URI.replace(/:([^:@]{1,})@/, ":****@");
+console.log(`Connection String: ${obfuscatedUri}`);
+
 mongoose
-  .connect(MONGO_URI)
+  .connect(MONGO_URI, {
+    serverApi: {
+      version: '1',
+      strict: true,
+      deprecationErrors: true,
+    }
+  })
   .then(() => {
-    console.log("Connected to MongoDB");
+    console.log("✅ Pinged your deployment. You successfully connected to MongoDB!");
     server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      console.log(`🚀 Server running on port ${PORT}`);
     });
   })
   .catch((err) => {
-    console.error("MongoDB connection error:", err);
+    console.error("❌ MongoDB connection error:", err.message);
+    if (err.message.includes("querySrv ECONNREFUSED")) {
+      console.error("💡 TIP: This remains a DNS issue. Your computer cannot resolve the SRV record.");
+      console.error("   Try switching your DNS to 8.8.8.8 OR use the 'Standard Connection String' (mongodb://) from Atlas.");
+    }
   });
