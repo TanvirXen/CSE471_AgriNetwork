@@ -25,13 +25,13 @@ createRoot(document.getElementById('root')).render(
         <Route path="/chaman/search" element={<SearchMapPage />} />
         <Route path="/shabiba" element={<ShabibaPage />} />
         <Route path="/sumaiya" element={<SumaiyaPage />} />
-        <Route path="/tanvir/chatbot" element={<ChatbotPage />} />
+        {/* <Route path="/tanvir/chatbot" element={<ChatbotPage />} /> */}
         <Route path="/sumaiya/CropMarketplace" element={<CropMarketplace />} />
         <Route path="/sumaiya/OrderHistory" element={<OrderHistory />} />
         <Route path="/shabiba/marketplace" element={<Marketplace />} />
         <Route path="/shabiba/verification" element={<Verification />} />
 
-        <Route path="*" element={<App />} />
+        <Route path="*" element={<App />} /> 
       </Routes>
     </BrowserRouter>
   </StrictMode>,
