@@ -1,15 +1,64 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Leaf, User, Store, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Leaf, User, Store, ArrowRight, ArrowLeft, Phone, Lock, User as UserIcon } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import '../CSS/Auth.css';
 
 const Signup = () => {
   const [step, setStep] = useState(1);
   const [role, setRole] = useState(null);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    phone: '',
+    password: ''
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const nextStep = () => setStep(s => s + 1);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const nextStep = () => {
+    setError('');
+    setStep(s => s + 1);
+  };
   const prevStep = () => setStep(s => s - 1);
+
+  const handleRegister = async () => {
+    if (!role) {
+      setError('Please select a role.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, role: role.charAt(0).toUpperCase() + role.slice(1) })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        login(data.token, data.user);
+        navigate(`/complete-profile/${role}`);
+      } else {
+        setError(data.message || 'Registration failed.');
+      }
+    } catch (err) {
+      setError('Connection error. Is the server running?');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="auth-container">
@@ -22,6 +71,12 @@ const Signup = () => {
         <div className="auth-logo">
           <Leaf size={28} /> AgriNetwork
         </div>
+
+        {error && (
+          <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.85rem', textAlign: 'center' }}>
+            {error}
+          </div>
+        )}
         
         <AnimatePresence mode="wait">
           {step === 1 ? (
@@ -38,17 +93,53 @@ const Signup = () => {
               <form className="auth-form" onSubmit={(e) => { e.preventDefault(); nextStep(); }}>
                 <div className="form-group">
                   <label className="form-label">Full Name</label>
-                  <input type="text" className="form-input" placeholder="John Doe" required />
+                  <div style={{ position: 'relative' }}>
+                    <UserIcon size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
+                    <input 
+                      type="text" 
+                      name="fullName"
+                      className="form-input" 
+                      placeholder="John Doe" 
+                      style={{ paddingLeft: '40px' }}
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      required 
+                    />
+                  </div>
                 </div>
                 
                 <div className="form-group">
-                  <label className="form-label">Email Address</label>
-                  <input type="email" className="form-input" placeholder="john@example.com" required />
+                  <label className="form-label">Phone Number</label>
+                  <div style={{ position: 'relative' }}>
+                    <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
+                    <input 
+                      type="tel" 
+                      name="phone"
+                      className="form-input" 
+                      placeholder="017XXXXXXXX" 
+                      style={{ paddingLeft: '40px' }}
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      required 
+                    />
+                  </div>
                 </div>
                 
                 <div className="form-group">
                   <label className="form-label">Password</label>
-                  <input type="password" className="form-input" placeholder="••••••••" required />
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
+                    <input 
+                      type="password" 
+                      name="password"
+                      className="form-input" 
+                      placeholder="••••••••" 
+                      style={{ paddingLeft: '40px' }}
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required 
+                    />
+                  </div>
                 </div>
 
                 <div className="auth-footer-links">
@@ -96,12 +187,12 @@ const Signup = () => {
                   Back
                 </button>
                 <button 
-                  disabled={!role}
+                  disabled={!role || loading}
                   className="primary-button" 
                   style={{ flex: 2, opacity: role ? 1 : 0.6 }}
-                  onClick={() => window.location.href = `/complete-profile/${role}`}
+                  onClick={handleRegister}
                 >
-                  Complete Registration
+                  {loading ? 'Creating Account...' : 'Complete Registration'}
                 </button>
               </div>
             </motion.div>
