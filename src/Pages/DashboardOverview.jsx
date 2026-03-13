@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
   Package, 
@@ -7,10 +8,12 @@ import {
   DollarSign, 
   ArrowUpRight, 
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  ExternalLink
 } from 'lucide-react';
 
 const DashboardOverview = () => {
+  const navigate = useNavigate();
   const stats = [
     { label: 'Total Earnings', value: '৳45,200', icon: <DollarSign size={24} color="#3a5a40" />, color: '#ffe5ec' },
     { label: 'Active Orders', value: '12', icon: <Package size={24} color="#344e41" />, color: '#dad7cd' },
@@ -26,9 +29,31 @@ const DashboardOverview = () => {
 
   return (
     <div className="overview-container">
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--primary-dark)' }}>Dashboard Overview</h2>
-        <p style={{ color: 'var(--secondary)' }}>Welcome back, John! Here's what's happening with your agri-business.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--primary-dark)' }}>Dashboard Overview</h2>
+          <p style={{ color: 'var(--secondary)' }}>Welcome back, John! Here's what's happening with your agri-business.</p>
+        </div>
+        <button 
+          onClick={() => navigate('/marketplace')}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            background: 'var(--primary-main)', 
+            color: 'white', 
+            padding: '12px 20px', 
+            borderRadius: '12px', 
+            border: 'none', 
+            fontWeight: '700',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+          onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+        >
+          Go to Marketplace <ExternalLink size={18} />
+        </button>
       </div>
 
       <div className="stats-grid">

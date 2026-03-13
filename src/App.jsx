@@ -20,8 +20,8 @@ function App() {
           <li>
             <Link to="/shabiba/verification">Shabiba Verification</Link>
           </li>
-                 <li>
-            <Link to="/shabiba/marketplace">Shabiba marketplace</Link>
+          <li>
+            <Link to="/marketplace">Marketplace</Link>
           </li>
           <li>
             <Link to="/sumaiya">Sumaiya</Link>

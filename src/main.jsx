@@ -46,6 +46,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/sumaiya/CropMarketplace" element={<CropMarketplace />} />
           <Route path="/sumaiya/OrderHistory" element={<OrderHistory />} />
           <Route path="/shabiba/marketplace" element={<Marketplace />} />
+          <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/shabiba/verification" element={<Verification />} />
 
           {/* Protected Dashboard Routes */}
