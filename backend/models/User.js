@@ -136,6 +136,16 @@ const UserSchema = new mongoose.Schema(
 
     lastLoginAt: { type: Date },
     deviceInfo: [{ type: String, trim: true }],
+
+    // NID Verification Fields
+    nidFront: { type: String, default: "" },
+    nidBack: { type: String, default: "" },
+    verificationStatus: {
+      type: String,
+      enum: ["unverified", "pending", "verified", "rejected"],
+      default: "unverified",
+    },
+    isVerified: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

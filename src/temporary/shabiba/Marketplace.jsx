@@ -68,6 +68,21 @@ const Marketplace = () => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
+                    <button 
+                        onClick={() => { localStorage.removeItem('token'); window.location.reload(); }}
+                        style={{ 
+                            marginLeft: '20px',
+                            background: '#fee2e2', 
+                            color: '#dc2626', 
+                            border: 'none', 
+                            padding: '10px 15px', 
+                            borderRadius: '12px', 
+                            cursor: 'pointer',
+                            fontWeight: '600'
+                        }}
+                    >
+                        Logout
+                    </button>
                 </header>
 
                 <section>
