@@ -1,196 +1,32 @@
 // ChatNegotiationPage (index.jsx) — AgriNetwork Bangladesh
-// Full Chat + Live Price Negotiation page (UI only)
+// Full Chat + Live Price Negotiation page — Connected to Backend
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
+import { io } from "socket.io-client";
 import "./ChatNegotiation.css";
 
 import LivePriceTicker from "./components/LivePriceTicker";
-import ChatSidebar, { CONVERSATIONS } from "./components/ChatSidebar";
+import ChatSidebar from "./components/ChatSidebar";
 import ChatHeader from "./components/ChatHeader";
 import MessageBubble from "./components/MessageBubble";
 import PriceInputPanel from "./components/PriceInputPanel";
 
-/* ─────────────────────────────────────────────
-   Static seeded messages per conversation
-───────────────────────────────────────────── */
-const SEED_MESSAGES = {
-  1: [
-    { id: 1, type: "date", text: "Today" },
-    {
-      id: 2,
-      type: "text",
-      isSent: false,
-      senderInitials: "RU",
-      text: "আস্সালামু আলায়কুম ভাই। আমার কাছে প্রিমিয়াম মিনিকেট চাল আছে — নতুন ফসল। আগ্রহী আছেন?",
-      timestamp: "9:32 AM",
-    },
-    {
-      id: 3,
-      type: "text",
-      isSent: true,
-      senderInitials: "You",
-      text: "Wa alaikum salam! Yes, interested. What quantity do you have available?",
-      timestamp: "9:34 AM",
-    },
-    {
-      id: 4,
-      type: "text",
-      isSent: false,
-      senderInitials: "RU",
-      text: "I have about 500 kg ready. Everything sun-dried and bagged properly.",
-      timestamp: "9:35 AM",
-    },
-    {
-      id: 5,
-      type: "negotiation",
-      isSent: false,
-      senderInitials: "RU",
-      negType: "offer",
-      crop: "Premium Rice (Miniket) — New Harvest",
-      quantity: "500 kg",
-      offerPrice: 60,
-      marketPrice: 58,
-      unit: "৳/kg",
-      timestamp: "9:37 AM",
-    },
-    {
-      id: 6,
-      type: "text",
-      isSent: true,
-      senderInitials: "You",
-      text: "That's a bit above market rate. Let me send a counter offer.",
-      timestamp: "9:39 AM",
-    },
-    {
-      id: 7,
-      type: "negotiation",
-      isSent: true,
-      senderInitials: "You",
-      negType: "counter",
-      crop: "Premium Rice (Miniket) — New Harvest",
-      quantity: "500 kg",
-      offerPrice: 55,
-      marketPrice: 58,
-      unit: "৳/kg",
-      timestamp: "9:40 AM",
-    },
-    {
-      id: 8,
-      type: "text",
-      isSent: false,
-      senderInitials: "RU",
-      text: "৳55/kg is my final offer for the rice. Can you do ৳57?",
-      timestamp: "9:42 AM",
-    },
-  ],
-  2: [
-    { id: 1, type: "date", text: "Yesterday" },
-    {
-      id: 2,
-      type: "text",
-      isSent: false,
-      senderInitials: "DF",
-      text: "Hello! We are looking for 1 tonne of potato this week for our Dhaka outlets.",
-      timestamp: "11:00 AM",
-    },
-    {
-      id: 3,
-      type: "negotiation",
-      isSent: false,
-      senderInitials: "DF",
-      negType: "offer",
-      crop: "Potato (Diamond)",
-      quantity: "1000 kg",
-      offerPrice: 20,
-      marketPrice: 22,
-      unit: "৳/kg",
-      timestamp: "11:02 AM",
-    },
-    {
-      id: 4,
-      type: "negotiation",
-      isSent: true,
-      senderInitials: "You",
-      negType: "accepted",
-      crop: "Potato (Diamond)",
-      quantity: "1000 kg",
-      offerPrice: 20,
-      marketPrice: 22,
-      unit: "৳/kg",
-      timestamp: "11:10 AM",
-    },
-    {
-      id: 5,
-      type: "status",
-      text: "🎉 Deal confirmed! Both parties agreed on ৳20/kg for 1000 kg of Potato.",
-      dealClosed: true,
-    },
-    { id: 6, type: "date", text: "Today" },
-    {
-      id: 7,
-      type: "text",
-      isSent: false,
-      senderInitials: "DF",
-      text: "We can pick up from Manikganj on Friday. Please confirm loading time.",
-      timestamp: "10:18 AM",
-    },
-  ],
-  3: [
-    { id: 1, type: "date", text: "2 days ago" },
-    {
-      id: 2,
-      type: "text",
-      isSent: true,
-      senderInitials: "You",
-      text: "Hello! We'd like to purchase onions in bulk. What's your best price?",
-      timestamp: "2:00 PM",
-    },
-    {
-      id: 3,
-      type: "negotiation",
-      isSent: true,
-      senderInitials: "You",
-      negType: "offer",
-      crop: "Red Onion",
-      quantity: "300 kg",
-      offerPrice: 68,
-      marketPrice: 75,
-      unit: "৳/kg",
-      timestamp: "2:05 PM",
-    },
-    {
-      id: 4,
-      type: "negotiation",
-      isSent: false,
-      senderInitials: "KA",
-      negType: "counter",
-      crop: "Red Onion",
-      quantity: "300 kg",
-      offerPrice: 72,
-      marketPrice: 75,
-      unit: "৳/kg",
-      timestamp: "2:15 PM",
-    },
-    {
-      id: 5,
-      type: "negotiation",
-      isSent: true,
-      senderInitials: "You",
-      negType: "accepted",
-      crop: "Red Onion",
-      quantity: "300 kg",
-      offerPrice: 72,
-      marketPrice: 75,
-      unit: "৳/kg",
-      timestamp: "2:20 PM",
-    },
-    {
-      id: 6,
-      type: "status",
-      text: "Counter offer accepted ✔  Deal closed at ৳72/kg",
-      dealClosed: true,
-    },
-  ],
+import { useAuth } from "../../context/AuthContext";
+
+const API_BASE = import.meta.env.VITE_API_URL || "";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
+
+const getMockLivePrice = (cropName) => {
+  if (!cropName) return 58;
+  const c = cropName.toLowerCase();
+  if (c.includes("tomato") || c.includes("টমেটো")) return 40;
+  if (c.includes("rice") || c.includes("চাল")) return 65;
+  if (c.includes("wheat") || c.includes("গম")) return 38;
+  if (c.includes("potato") || c.includes("আলু")) return 25;
+  if (c.includes("onion") || c.includes("পেঁয়াজ")) return 50;
+  if (c.includes("mango") || c.includes("আম")) return 120;
+  return 58; 
 };
 
 /* ─────────────────────────────────────────────
@@ -237,29 +73,19 @@ function QuickOfferModal({ onClose, onSubmit, counterFor }) {
 
           <div className="cn-modal__field">
             <label>Crop / Product *</label>
-            <input
-              placeholder="e.g. Premium Rice (Miniket)"
-              value={data.crop}
-              onChange={(e) => setData({ ...data, crop: e.target.value })}
-              required
-            />
+            <input placeholder="e.g. Premium Rice (Miniket)" value={data.crop}
+              onChange={(e) => setData({ ...data, crop: e.target.value })} required />
           </div>
 
           <div className="cn-modal__grid-2">
             <div className="cn-modal__field">
               <label>Quantity</label>
-              <input
-                placeholder="e.g. 200 kg"
-                value={data.quantity}
-                onChange={(e) => setData({ ...data, quantity: e.target.value })}
-              />
+              <input placeholder="e.g. 200 kg" value={data.quantity}
+                onChange={(e) => setData({ ...data, quantity: e.target.value })} />
             </div>
             <div className="cn-modal__field">
               <label>Unit</label>
-              <select
-                value={data.unit}
-                onChange={(e) => setData({ ...data, unit: e.target.value })}
-              >
+              <select value={data.unit} onChange={(e) => setData({ ...data, unit: e.target.value })}>
                 <option>৳/kg</option>
                 <option>৳/quintal</option>
                 <option>৳/ton</option>
@@ -271,29 +97,18 @@ function QuickOfferModal({ onClose, onSubmit, counterFor }) {
 
           <div className="cn-modal__field">
             <label>Your Price ({data.unit}) *</label>
-            <input
-              type="number"
-              placeholder="Enter amount"
-              value={data.price}
-              onChange={(e) => setData({ ...data, price: e.target.value })}
-              required
-              min="1"
-            />
+            <input type="number" placeholder="Enter amount" value={data.price}
+              onChange={(e) => setData({ ...data, price: e.target.value })} required min="1" />
           </div>
 
           <div className="cn-modal__field">
             <label>Note (optional)</label>
-            <textarea
-              placeholder="Any additional terms, delivery info, or remarks…"
-              value={data.note}
-              onChange={(e) => setData({ ...data, note: e.target.value })}
-            />
+            <textarea placeholder="Any additional terms, delivery info, or remarks…"
+              value={data.note} onChange={(e) => setData({ ...data, note: e.target.value })} />
           </div>
 
           <div className="cn-modal__actions">
-            <button type="button" className="cn-btn cn-btn--ghost" onClick={onClose}>
-              Cancel
-            </button>
+            <button type="button" className="cn-btn cn-btn--ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="cn-btn cn-btn--primary">
               {counterFor ? "Send Counter Offer" : "Send Offer"} →
             </button>
@@ -308,109 +123,405 @@ function QuickOfferModal({ onClose, onSubmit, counterFor }) {
    MAIN PAGE
 ───────────────────────────────────────────── */
 function ChatNegotiationPage() {
-  const [activeConv, setActiveConv] = useState(CONVERSATIONS[0]);
-  const [messages, setMessages] = useState(SEED_MESSAGES[1] || []);
+  const { user, token } = useAuth();
+  const location = useLocation();
+
+  const [extraConvs, setExtraConvs] = useState([]);
+  const [activeConv, setActiveConv] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isOfferMode, setIsOfferMode] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [counterFor, setCounterFor] = useState(null);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
 
-  // Scroll to bottom whenever messages change
+  // Initialize socket
+  useEffect(() => {
+    socketRef.current = io(SOCKET_URL, { transports: ["websocket"] });
+
+    if (user?._id) {
+      socketRef.current.emit("join_user", user._id);
+    }
+
+    socketRef.current.on("receive_message", (data) => {
+      // Only add to current list if it belongs to active conversation
+      if (activeConv && data.conversationId === activeConv.conversationId) {
+        // Avoid adding my own message again if it was already added locally
+        const currentUserId = user?._id?.toString();
+        const msgSenderId = (data.senderId || data.sender?._id || data.sender)?.toString();
+        const isSentByMe = currentUserId === msgSenderId;
+        
+        // For simple text/image messages, we might already have added them to state
+        // For now, let's just make sure isSent is correct and initials are correct
+        setMessages((prev) => {
+          // Check for duplicate locally added messages by time or ID if possible
+          // But as a simple fix, only add if it's received from the other person
+          if (isSentByMe) return prev; 
+
+          return [
+            ...prev,
+            {
+              id: Date.now(),
+              type: data.type || "text",
+              isSent: false,
+              senderInitials: activeConv?.avatar || "??",
+              text: data.text,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              mediaUrl: data.mediaUrl,
+              ...(data.negotiation && {
+                negType: data.negotiation.type,
+                crop: data.negotiation.crop,
+                quantity: data.negotiation.quantity,
+                offerPrice: data.negotiation.offerPrice,
+                marketPrice: data.negotiation.marketPrice || 58,
+                unit: data.negotiation.unit,
+              }),
+            },
+          ];
+        });
+      }
+    });
+
+    socketRef.current.on("offer_accepted", (data) => {
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.negotiationMongoId === data.negotiationMongoId || m.id === data.msgId) {
+             return { ...m, negType: "accepted" };
+          }
+           return m;
+        })
+      );
+      const isSentByMe = data.senderId === user?._id?.toString();
+      if (!isSentByMe) {
+        setMessages((prev) => [...prev, {
+          id: Date.now() + Math.random(), type: "status",
+          text: "🎉 Deal confirmed! Both parties agreed on this price.", dealClosed: true,
+        }]);
+      }
+    });
+
+    socketRef.current.on("offer_rejected", (data) => {
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.negotiationMongoId === data.negotiationMongoId || m.id === data.msgId) {
+             return { ...m, negType: "rejected" };
+          }
+           return m;
+        })
+      );
+      const isSentByMe = data.senderId === user?._id?.toString();
+      if (!isSentByMe) {
+          setMessages((prev) => [...prev, {
+            id: Date.now() + Math.random(), type: "status",
+            text: "Offer was declined. You can send a counter offer or start fresh.",
+          }]);
+      }
+    });
+
+    socketRef.current.on("new_notification", (data) => {
+      // Refresh sidebar list (handled by ChatSidebar polling but we could trigger it manually)
+      console.log("New message notification:", data);
+    });
+
+    return () => socketRef.current?.disconnect();
+  }, [user, activeConv]);
+
+  // Handle incoming chat request from Map
+  useEffect(() => {
+    if (location.state?.startChatWith) {
+      const item = location.state.startChatWith;
+      const initials = item.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+      const tempConv = {
+        id: `map-${item.id || Date.now()}`,
+        userId: item.userId,
+        name: item.name,
+        avatar: initials,
+        lastMsg: `Interested in ${item.crop}`,
+        time: "Just now",
+        unread: 0,
+        online: true,
+        role: item.type || "farmer",
+        crop: item.crop,
+      };
+
+      setExtraConvs((prev) => {
+        // Avoid duplicates
+        if (prev.find((c) => c.name === item.name)) return prev;
+        return [tempConv, ...prev];
+      });
+
+      setActiveConv(tempConv);
+      setMessages([
+        { id: 1, type: "date", text: "Today" },
+        {
+          id: 2, type: "text", isSent: false,
+          senderInitials: initials,
+          text: `নমস্কার! আমি ${item.name}। আপনি কি ${item.crop} নিয়ে আলোচনা করতে চান?`,
+          timestamp: "Just now",
+        },
+      ]);
+
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Simulate "typing…" indicator after user sends
+  const senderInitials = user?.fullName
+    ? user.fullName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "You";
+
+  // Load messages from backend when switching convos
+  const loadBackendMessages = useCallback(async (convId) => {
+    if (!token || typeof convId !== "string" || convId.startsWith("map-")) return;
+    try {
+      setLoadingMessages(true);
+      const res = await fetch(`${API_BASE}/api/messages/${convId}`, {
+        headers: { "x-auth-token": token },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.length > 0) {
+        setMessages(
+          data.map((m) => {
+            const senderIdStr = (m.sender?._id || m.sender).toString();
+            const isSentByMe = senderIdStr === user?._id?.toString();
+            return {
+              id: m._id,
+              type: m.type,
+              isSent: isSentByMe,
+              senderInitials: isSentByMe ? senderInitials : (m.sender?.fullName?.slice(0, 2).toUpperCase() || "??"),
+              text: m.text || "",
+              timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              mediaUrl: m.mediaUrl,
+              ...(m.negotiationId && {
+                negType: m.negotiationId.status !== "Pending" ? m.negotiationId.status.toLowerCase() : m.negotiationId.type,
+                crop: m.negotiationId.crop,
+                quantity: m.negotiationId.quantity,
+                offerPrice: m.negotiationId.offerPrice,
+                marketPrice: m.negotiationId.marketPrice || 58,
+                unit: m.negotiationId.unit,
+                negotiationMongoId: m.negotiationId._id,
+              }),
+            };
+          })
+        );
+      }
+    } catch (e) {
+      console.error("Failed to load messages:", e);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, [token, user, senderInitials]);
+
+  const handleSelectConv = (conv) => {
+    setActiveConv(conv);
+    setSidebarOpen(false);
+    setIsOfferMode(false);
+
+    // Use backend for real ones, or fallback for guest map navigation
+    if (conv.conversationId) {
+      loadBackendMessages(conv.conversationId);
+    } else {
+      // For temporary chats initiated from Map that haven't sent a message yet
+      setMessages([
+        { id: 1, type: "date", text: "Today" },
+        {
+          id: 2, type: "text", isSent: false,
+          senderInitials: conv.avatar || "??",
+          text: conv.lastMsg || "Hello! I'm interested in discussing a trade.",
+          timestamp: "Just now",
+        },
+      ]);
+    }
+
+    // Join socket room
+    if (conv.conversationId) {
+      socketRef.current?.emit("join_conversation", conv.conversationId);
+    }
+  };
+
   const simulateTyping = () => {
     setIsTyping(true);
     setTimeout(() => setIsTyping(false), 2200);
   };
 
-  const handleSelectConv = (conv) => {
-    setActiveConv(conv);
-    setMessages(SEED_MESSAGES[conv.id] || [
-      { id: 1, type: "date", text: "Today" },
-      {
-        id: 2,
-        type: "text",
-        isSent: false,
-        senderInitials: conv.avatar,
-        text: "Hello! I'm interested in discussing a trade.",
-        timestamp: "Just now",
-      },
-    ]);
-    setIsOfferMode(false);
-    setSidebarOpen(false);
-  };
-
-  const handleSendMessage = (text) => {
+  const handleSendMessage = async (text, file) => {
     const msg = {
       id: Date.now(),
-      type: "text",
+      type: file ? (file.type.startsWith("image") ? "image" : file.type.startsWith("audio") ? "audio" : "file") : "text",
       isSent: true,
-      senderInitials: "You",
+      senderInitials: senderInitials,
       text,
+      mediaUrl: file ? URL.createObjectURL(file) : null, // Local preview
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
+
     setMessages((prev) => [...prev, msg]);
     simulateTyping();
+
+    // Send to backend if logged in and conv has a real receiver
+    if (token && activeConv?.userId) {
+      try {
+        const formData = new FormData();
+        formData.append("receiverId", activeConv.userId);
+        if (text) formData.append("text", text);
+        if (file) formData.append("media", file);
+
+        const res = await fetch(`${API_BASE}/api/messages`, {
+          method: "POST",
+          headers: { "x-auth-token": token },
+          body: formData,
+        });
+
+        if (res.ok) {
+          const { message, conversationId } = await res.json();
+          if (conversationId) {
+            if (activeConv.id.startsWith("map-")) {
+              const updatedConv = { ...activeConv, id: conversationId, conversationId };
+              setActiveConv(updatedConv);
+              setExtraConvs(prev => prev.map(c => c.id === activeConv.id ? updatedConv : c));
+            }
+            socketRef.current?.emit("join_conversation", conversationId);
+            socketRef.current?.emit("send_message", {
+              conversationId,
+              senderId: user?._id,
+              receiverId: activeConv.userId,
+              text: message.text,
+              type: message.type,
+              mediaUrl: message.mediaUrl,
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to send message:", e);
+      }
+    }
   };
 
-  const handleSendOffer = (offerData) => {
+  const handleSendOffer = async (offerData) => {
     const msg = {
-      id: Date.now(),
-      type: "negotiation",
-      isSent: true,
-      senderInitials: "You",
-      negType: "offer",
-      crop: offerData.crop,
+      id: Date.now(), type: "negotiation", isSent: true, senderInitials: senderInitials,
+      negType: "offer", crop: offerData.crop,
       quantity: offerData.quantity || "—",
       offerPrice: Number(offerData.price),
-      marketPrice: 58, // placeholder market rate
-      unit: offerData.unit,
+      marketPrice: getMockLivePrice(offerData.crop), unit: offerData.unit,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
     setMessages((prev) => [...prev, msg]);
     setIsOfferMode(false);
     simulateTyping();
+
+    // Send to backend if logged in
+    if (token && activeConv?.userId) {
+      try {
+        const res = await fetch(`${API_BASE}/api/messages/offer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-auth-token": token },
+          body: JSON.stringify({
+            receiverId: activeConv.userId,
+            crop: offerData.crop,
+            quantity: offerData.quantity,
+            offerPrice: Number(offerData.price),
+            marketPrice: getMockLivePrice(offerData.crop), 
+            unit: offerData.unit,
+            note: offerData.note,
+            type: "offer",
+          }),
+        });
+
+        if (res.ok) {
+          const { message, conversationId } = await res.json();
+          if (conversationId) {
+            if (activeConv.id.startsWith("map-")) {
+              const updatedConv = { ...activeConv, id: conversationId, conversationId };
+              setActiveConv(updatedConv);
+              setExtraConvs(prev => prev.map(c => c.id === activeConv.id ? updatedConv : c));
+            }
+            socketRef.current?.emit("join_conversation", conversationId);
+            socketRef.current?.emit("send_message", {
+              conversationId,
+              senderId: user?._id,
+              receiverId: activeConv.userId,
+              type: "negotiation",
+              negotiation: {
+                ...message.negotiationId,
+                marketPrice: message.negotiationId?.marketPrice || getMockLivePrice(offerData.crop)
+              },
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to send offer:", e);
+      }
+    }
   };
 
-  const handleAcceptOffer = (msgId) => {
+  const handleAcceptOffer = async (msgId) => {
     setMessages((prev) =>
-      prev.map((m) => {
-        if (m.id === msgId && m.type === "negotiation") {
-          return { ...m, negType: "accepted" };
-        }
-        return m;
-      })
+      prev.map((m) => (m.id === msgId && m.type === "negotiation" ? { ...m, negType: "accepted" } : m))
     );
-    // Insert status message
     const statusMsg = {
-      id: Date.now(),
-      type: "status",
-      text: "🎉 Deal confirmed! Both parties agreed on this price.",
-      dealClosed: true,
+      id: Date.now(), type: "status",
+      text: "🎉 Deal confirmed! Both parties agreed on this price.", dealClosed: true,
     };
     setMessages((prev) => [...prev, statusMsg]);
+
+    // Update backend
+    const origMsg = messages.find((m) => m.id === msgId);
+    if (token && origMsg?.negotiationMongoId) {
+      try {
+        await fetch(`${API_BASE}/api/messages/offer/${origMsg.negotiationMongoId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", "x-auth-token": token },
+          body: JSON.stringify({ action: "accept" }),
+        });
+        socketRef.current?.emit("accept_offer", {
+           conversationId: activeConv.conversationId || activeConv.id,
+           msgId,
+           negotiationMongoId: origMsg.negotiationMongoId,
+           senderId: user?._id?.toString()
+        });
+      } catch (e) {
+        console.error("Failed to update offer:", e);
+      }
+    }
   };
 
-  const handleRejectOffer = (msgId) => {
+  const handleRejectOffer = async (msgId) => {
     setMessages((prev) =>
-      prev.map((m) => {
-        if (m.id === msgId && m.type === "negotiation") {
-          return { ...m, negType: "rejected" };
-        }
-        return m;
-      })
+      prev.map((m) => (m.id === msgId && m.type === "negotiation" ? { ...m, negType: "rejected" } : m))
     );
     const statusMsg = {
-      id: Date.now(),
-      type: "status",
+      id: Date.now(), type: "status",
       text: "Offer was declined. You can send a counter offer or start fresh.",
     };
     setMessages((prev) => [...prev, statusMsg]);
+
+    const origMsg = messages.find((m) => m.id === msgId);
+    if (token && origMsg?.negotiationMongoId) {
+      try {
+        await fetch(`${API_BASE}/api/messages/offer/${origMsg.negotiationMongoId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", "x-auth-token": token },
+          body: JSON.stringify({ action: "reject" }),
+        });
+        socketRef.current?.emit("reject_offer", {
+           conversationId: activeConv.conversationId || activeConv.id,
+           msgId,
+           negotiationMongoId: origMsg.negotiationMongoId,
+           senderId: user?._id?.toString()
+        });
+      } catch (e) {
+        console.error("Failed to reject offer:", e);
+      }
+    }
   };
 
   const handleCounterOffer = (msgId) => {
@@ -419,23 +530,64 @@ function ChatNegotiationPage() {
     setModalOpen(true);
   };
 
-  const handleModalSubmit = (data) => {
+  const handleModalSubmit = async (data) => {
     const msg = {
-      id: Date.now(),
-      type: "negotiation",
-      isSent: true,
-      senderInitials: "You",
-      negType: "counter",
-      crop: data.crop,
+      id: Date.now(), type: "negotiation", isSent: true, senderInitials: senderInitials,
+      negType: "counter", crop: data.crop,
       quantity: data.quantity || counterFor?.quantity || "—",
       offerPrice: Number(data.price),
-      marketPrice: counterFor?.offerPrice || 58,
+      marketPrice: getMockLivePrice(data.crop),
       unit: data.unit,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
     setMessages((prev) => [...prev, msg]);
     setCounterFor(null);
+    setModalOpen(false);
     simulateTyping();
+
+    // Send to backend
+    if (token && activeConv?.userId) {
+      try {
+        const res = await fetch(`${API_BASE}/api/messages/offer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-auth-token": token },
+          body: JSON.stringify({
+            receiverId: activeConv.userId,
+            crop: data.crop,
+            quantity: data.quantity || counterFor?.quantity,
+            offerPrice: Number(data.price),
+            marketPrice: getMockLivePrice(data.crop),
+            unit: data.unit,
+            note: data.note,
+            type: "counter",
+          }),
+        });
+
+        if (res.ok) {
+          const { message, conversationId } = await res.json();
+          if (conversationId) {
+            if (activeConv.id.startsWith("map-")) {
+              const updatedConv = { ...activeConv, id: conversationId, conversationId };
+              setActiveConv(updatedConv);
+              setExtraConvs(prev => prev.map(c => c.id === activeConv.id ? updatedConv : c));
+            }
+            socketRef.current?.emit("join_conversation", conversationId);
+            socketRef.current?.emit("send_message", {
+              conversationId,
+              senderId: user?._id,
+              receiverId: activeConv.userId,
+              type: "negotiation",
+              negotiation: {
+                ...message.negotiationId,
+                marketPrice: message.negotiationId?.marketPrice || getMockLivePrice(data.crop)
+              },
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to send counter offer:", e);
+      }
+    }
   };
 
   return (
@@ -446,39 +598,26 @@ function ChatNegotiationPage() {
       {/* Page Title Bar */}
       <div className="cn-page-header">
         <div className="cn-page-header__title">
-          <h1>💬 Chat & Price Negotiation</h1>
+          <h1>💬 Chat &amp; Price Negotiation</h1>
           <span>AgriNetwork Bangladesh — Direct Farmer-Vendor Deals</span>
         </div>
         <div className="cn-page-header__badges">
-          <span className="cn-badge cn-badge--active">
-            🟢 3 Active Chats
-          </span>
-          <span className="cn-badge cn-badge--deals">
-            🤝 2 Deals Pending
-          </span>
+          <span className="cn-badge cn-badge--active">🟢 Direct Trading Channel</span>
         </div>
       </div>
 
-      {/* Main layout: Sidebar + Chat */}
+      {/* Main layout */}
       <div className="cn-layout">
-        {/* Sidebar overlay backdrop on mobile */}
         {sidebarOpen && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(52,78,65,0.3)",
-              zIndex: 40,
-            }}
-            onClick={() => setSidebarOpen(false)}
-            aria-hidden="true"
-          />
+          <div style={{ position: "fixed", inset: 0, background: "rgba(52,78,65,0.3)", zIndex: 40 }}
+            onClick={() => setSidebarOpen(false)} aria-hidden="true" />
         )}
 
         <ChatSidebar
           activeId={activeConv?.id}
           onSelect={handleSelectConv}
           isOpen={sidebarOpen}
+          extraConversations={extraConvs}
         />
 
         {/* Chat Area */}
@@ -491,35 +630,33 @@ function ChatNegotiationPage() {
                 onToggleSidebar={() => setSidebarOpen((v) => !v)}
               />
 
-              {/* Messages */}
               <div className="cn-messages" role="log" aria-live="polite">
-                {messages.map((msg) => (
-                  <MessageBubble
-                    key={msg.id}
-                    message={msg}
-                    onAcceptOffer={handleAcceptOffer}
-                    onRejectOffer={handleRejectOffer}
-                    onCounterOffer={handleCounterOffer}
-                  />
-                ))}
+                {loadingMessages ? (
+                  <div style={{ textAlign: "center", padding: "2rem", color: "#888" }}>Loading messages…</div>
+                ) : (
+                  messages.map((msg) => (
+                    <MessageBubble
+                      key={msg.id}
+                      message={msg}
+                      onAcceptOffer={handleAcceptOffer}
+                      onRejectOffer={handleRejectOffer}
+                      onCounterOffer={handleCounterOffer}
+                    />
+                  ))
+                )}
 
-                {/* Typing Indicator */}
                 {isTyping && (
                   <div className="cn-msg-row received">
                     <div className="cn-msg-avatar">{activeConv.avatar}</div>
                     <div className="cn-typing">
-                      <div className="cn-typing-dots">
-                        <span /><span /><span />
-                      </div>
+                      <div className="cn-typing-dots"><span /><span /><span /></div>
                       {activeConv.name} is typing…
                     </div>
                   </div>
                 )}
-
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Panel */}
               <PriceInputPanel
                 onSendMessage={handleSendMessage}
                 onSendOffer={handleSendOffer}
@@ -528,7 +665,6 @@ function ChatNegotiationPage() {
               />
             </>
           ) : (
-            /* Empty state */
             <div className="cn-empty-chat">
               <div className="cn-empty-chat__icon">💬</div>
               <div className="cn-empty-chat__title">Select a conversation</div>
