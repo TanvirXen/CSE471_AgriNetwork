@@ -105,9 +105,9 @@ const DashboardLayout = () => {
             
             <div className="user-profile-toggle">
               <div className="avatar-small">JD</div>
-              <div style={{ textAlign: 'left', display: 'none', md: 'block' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700' }}>John Doe</div>
-                <div style={{ fontSize: '0.75rem', color: '#888' }}>Vendor</div>
+              <div className="header-user-info">
+                <div className="user-name">John Doe</div>
+                <div className="user-role">Vendor</div>
               </div>
             </div>
           </div>
@@ -123,8 +123,26 @@ const DashboardLayout = () => {
           .mobile-menu-toggle {
             display: block !important;
           }
+          .header-user-info {
+            display: none;
+          }
+        }
+        @media (min-width: 769px) {
+          .header-user-info {
+            display: block;
+            text-align: left;
+          }
+          .user-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+          }
+          .user-role {
+            font-size: 0.75rem;
+            color: #888;
+          }
         }
       `}</style>
+
     </div>
   );
 };
