@@ -24,6 +24,8 @@ import DashboardProfile from './Pages/DashboardProfile'
 import ChatbotPage from './Pages/ChatbotPage'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './Components/ProtectedRoute'
+import SmartAgroMarket from './temporary/chaman/SmartAgroMarket'
+import EscrowDashboard from './temporary/chaman/EscrowDashboard'
 
 
 
@@ -48,26 +50,16 @@ createRoot(document.getElementById('root')).render(
           <Route path="/shabiba/marketplace" element={<Marketplace />} />
           <Route path="/shabiba/verification" element={<Verification />} />
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-        <Route path="*" element={<App />} />
-      </Routes>
-=======
-=======
->>>>>>> upstream/main
           {/* Protected Dashboard Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
               <Route path="profile" element={<DashboardProfile />} />
               <Route path="chatbot" element={<ChatbotPage />} />
+              <Route path="smart-agromarket" element={<SmartAgroMarket />} />
+              <Route path="escrow" element={<EscrowDashboard />} />
               <Route path="orders" element={<div className="dashboard-content"><h3>Orders Page (Coming Soon)</h3></div>} />
-<<<<<<< HEAD
-              <Route path="messages" element={<ChamanPage />} />
-              <Route path="map" element={<SearchMapPage />} />
-=======
               <Route path="messages" element={<div className="dashboard-content"><h3>Messages Page (Coming Soon)</h3></div>} />
->>>>>>> upstream/main
               <Route path="settings" element={<div className="dashboard-content"><h3>Settings Page (Coming Soon)</h3></div>} />
             </Route>
           </Route>
@@ -76,10 +68,6 @@ createRoot(document.getElementById('root')).render(
         </Routes>
         <Chatbot />
       </AuthProvider>
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> upstream/main
     </BrowserRouter>
   </StrictMode>,
 )
