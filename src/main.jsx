@@ -48,13 +48,6 @@ createRoot(document.getElementById('root')).render(
           <Route path="/shabiba/marketplace" element={<Marketplace />} />
           <Route path="/shabiba/verification" element={<Verification />} />
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-        <Route path="*" element={<App />} />
-      </Routes>
-=======
-=======
->>>>>>> upstream/main
           {/* Protected Dashboard Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardLayout />}>
@@ -62,12 +55,8 @@ createRoot(document.getElementById('root')).render(
               <Route path="profile" element={<DashboardProfile />} />
               <Route path="chatbot" element={<ChatbotPage />} />
               <Route path="orders" element={<div className="dashboard-content"><h3>Orders Page (Coming Soon)</h3></div>} />
-<<<<<<< HEAD
               <Route path="messages" element={<ChamanPage />} />
               <Route path="map" element={<SearchMapPage />} />
-=======
-              <Route path="messages" element={<div className="dashboard-content"><h3>Messages Page (Coming Soon)</h3></div>} />
->>>>>>> upstream/main
               <Route path="settings" element={<div className="dashboard-content"><h3>Settings Page (Coming Soon)</h3></div>} />
             </Route>
           </Route>
@@ -76,10 +65,7 @@ createRoot(document.getElementById('root')).render(
         </Routes>
         <Chatbot />
       </AuthProvider>
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> upstream/main
     </BrowserRouter>
   </StrictMode>,
 )
+
