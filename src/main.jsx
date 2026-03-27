@@ -8,7 +8,8 @@ import ChamanPage from './temporary/chaman'
 import SearchMapPage from './temporary/chaman/SearchMapPage'
 import ShabibaPage from './temporary/shabiba'
 import SumaiyaPage from './temporary/sumaiya'
-import CropMarketplace from './temporary/sumaiya/CropMarketplace.jsx'
+import CropMarketplace from './Pages/CropMarketplace.jsx'
+import CropDetails from './Pages/CropDetails.jsx'
 import OrderHistory from './temporary/sumaiya/OrderHistory.jsx'
 import Marketplace from './temporary/shabiba/Marketplace.jsx'
 import Verification from './temporary/shabiba/Verification.jsx'
@@ -41,6 +42,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/shabiba" element={<ShabibaPage />} />
         <Route path="/sumaiya" element={<SumaiyaPage />} />
         <Route path="/sumaiya/CropMarketplace" element={<CropMarketplace />} />
+        <Route path="/sumaiya/crop/:id" element={<CropDetails />} />
         <Route path="/sumaiya/OrderHistory" element={<OrderHistory />} />
         <Route path="/shabiba/marketplace" element={<Marketplace />} />
         <Route path="/shabiba/verification" element={<Verification />} />
