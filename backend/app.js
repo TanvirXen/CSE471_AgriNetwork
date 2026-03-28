@@ -7,6 +7,9 @@ const userRoutes = require("./routes/userRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const discoveryRoutes = require("./routes/discoveryRoutes");
 
+const cropRoutes = require("./routes/cropRoutes");
+const orderRoutes = require("./routes/orderRoutes");
+
 const app = express();
 
 app.use(cors());
@@ -26,4 +29,14 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/discovery", discoveryRoutes);
 
 module.exports = app;
+
+
+app.use("/api/crops", cropRoutes);
+app.use("/api/orders", orderRoutes);
+
+
+module.exports = app;
+
+
+
 
