@@ -107,4 +107,20 @@ jobs:
 
       # Step 9: Backend health check
       - name: Verify backend health
-        run: curl -f "http://127.0.0.1:${APP_PORT}/health"
+        run: |
+          ATTEMPTS=30
+          SLEEP_SECONDS=2
+
+          for i in $(seq 1 "${ATTEMPTS}"); do
+            if curl -fsS "http://127.0.0.1:${APP_PORT}/health" >/dev/null; then
+              echo "Health check passed on attempt ${i}/${ATTEMPTS}"
+              exit 0
+            fi
+            echo "Health check failed on attempt ${i}/${ATTEMPTS}; retrying in ${SLEEP_SECONDS}s..."
+            sleep "${SLEEP_SECONDS}"
+          done
+
+          echo "Backend did not become healthy in time. Showing PM2 status and logs:"
+          sudo pm2 status
+          sudo pm2 logs "${APP_NAME}" --lines 100 --nostream || true
+          exit 1
