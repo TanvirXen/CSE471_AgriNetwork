@@ -12,19 +12,20 @@ const cropRoutes = require("./routes/cropRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 
 const app = express();
-const path = require("path");
 
 app.use(cors());
 app.use(express.json());
 app.use(fileUpload());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Serve uploads as static
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
 // Base Route
 app.get("/", (req, res) => {
   res.send("AgriNetwork API is running...");
+});
+
+// Health route for reverse proxy checks
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
 });
 
 // Routes
@@ -33,13 +34,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/market", marketRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/discovery", discoveryRoutes);
-
-module.exports = app;
-
-
 app.use("/api/crops", cropRoutes);
 app.use("/api/orders", orderRoutes);
-
 
 module.exports = app;
 
