@@ -12,10 +12,13 @@ const cropRoutes = require("./routes/cropRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 
 const app = express();
+const messageUploadMiddleware = fileUpload({
+  limits: { fileSize: 10 * 1024 * 1024 },
+  abortOnLimit: true,
+});
 
 app.use(cors());
 app.use(express.json());
-app.use(fileUpload());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Base Route
@@ -32,7 +35,7 @@ app.get("/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/market", marketRoutes);
-app.use("/api/messages", messageRoutes);
+app.use("/api/messages", messageUploadMiddleware, messageRoutes);
 app.use("/api/discovery", discoveryRoutes);
 app.use("/api/crops", cropRoutes);
 app.use("/api/orders", orderRoutes);
