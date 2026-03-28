@@ -1,13 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Leaf, Store, User, MapPin, Phone, Briefcase, Camera } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import '../CSS/Auth.css';
 
 const CompleteProfile = () => {
   const { role } = useParams();
   const navigate = useNavigate();
+  const { user, token, updateUserInfo } = useAuth();
+  
   const isVendor = role === 'vendor';
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  
+  const [formData, setFormData] = useState({
+    phone: '',
+    address: '',
+    businessName: '',
+    tradeLicenseNo: '',
+    shopName: ''
+  });
+
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({ ...prev, phone: user.phone || '' }));
+    }
+  }, [user]);
 
   const [selectedCategories, setSelectedCategories] = useState([]);
 
@@ -20,6 +40,43 @@ const CompleteProfile = () => {
   };
 
   const categories = ['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Organic', 'Livestock', 'Poultry', 'Fish'];
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/profile`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ 
+          ...formData, 
+          productCategories: selectedCategories 
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        updateUserInfo(data);
+        navigate('/verify-nid');
+      } else {
+        setError(data.message || 'Failed to save profile.');
+      }
+    } catch (err) {
+      setError('Connection error. Is the server running?');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="auth-container">
@@ -39,14 +96,29 @@ const CompleteProfile = () => {
             ? "Setup your shop and let customers find your products" 
             : "Tell us a bit more to personalize your shopping experience"}
         </p>
+
+        {error && (
+          <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.85rem', textAlign: 'center' }}>
+            {error}
+          </div>
+        )}
         
-        <form className="auth-form" onSubmit={(e) => { e.preventDefault(); navigate('/verify-nid'); }}>
+        <form className="auth-form" onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', textAlign: 'left' }}>
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Phone Number</label>
               <div style={{ position: 'relative' }}>
                 <Phone size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
-                <input type="tel" className="form-input" style={{ paddingLeft: '40px' }} placeholder="+880 1XXX XXXXXX" required />
+                <input 
+                  type="tel" 
+                  name="phone"
+                  className="form-input" 
+                  style={{ paddingLeft: '40px' }} 
+                  placeholder="017XXXXXXXX" 
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  required 
+                />
               </div>
             </div>
 
@@ -54,7 +126,16 @@ const CompleteProfile = () => {
               <label className="form-label">Location / Address</label>
               <div style={{ position: 'relative' }}>
                 <MapPin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
-                <input type="text" className="form-input" style={{ paddingLeft: '40px' }} placeholder="Your primary address" required />
+                <input 
+                  type="text" 
+                  name="address"
+                  className="form-input" 
+                  style={{ paddingLeft: '40px' }} 
+                  placeholder="Your primary address" 
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  required 
+                />
               </div>
             </div>
 
@@ -64,13 +145,29 @@ const CompleteProfile = () => {
                   <label className="form-label">Business / Shop Name</label>
                   <div style={{ position: 'relative' }}>
                     <Store size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
-                    <input type="text" className="form-input" style={{ paddingLeft: '40px' }} placeholder="Green Agri Farm" required />
+                    <input 
+                      type="text" 
+                      name="businessName"
+                      className="form-input" 
+                      style={{ paddingLeft: '40px' }} 
+                      placeholder="Green Agri Farm" 
+                      value={formData.businessName}
+                      onChange={handleInputChange}
+                      required 
+                    />
                   </div>
                 </div>
                 
                 <div className="form-group">
                   <label className="form-label">Trade License (Optional)</label>
-                  <input type="text" className="form-input" placeholder="ABC-123-XYZ" />
+                  <input 
+                    type="text" 
+                    name="tradeLicenseNo"
+                    className="form-input" 
+                    placeholder="ABC-123-XYZ" 
+                    value={formData.tradeLicenseNo}
+                    onChange={handleInputChange}
+                  />
                 </div>
 
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
@@ -130,8 +227,8 @@ const CompleteProfile = () => {
             )}
           </div>
           
-          <button type="submit" className="primary-button" style={{ marginTop: '2rem' }}>
-            Save and Continue
+          <button type="submit" className="primary-button" style={{ marginTop: '2rem' }} disabled={loading}>
+            {loading ? 'Saving Profile...' : 'Save and Continue'}
           </button>
         </form>
       </motion.div>
