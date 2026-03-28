@@ -35,8 +35,11 @@ function NegotiationCard({
         rejected: "❌ Offer Rejected",
     };
 
-    const priceDiff = ((offerPrice - marketPrice) / marketPrice * 100).toFixed(1);
-    const diffPositive = offerPrice > marketPrice;
+    const marketValid = marketPrice > 0;
+    const priceDiff = marketValid 
+        ? ((offerPrice - marketPrice) / marketPrice * 100).toFixed(1)
+        : "0.0";
+    const diffPositive = marketValid && offerPrice > marketPrice;
 
     return (
         <div className={`cn-neg-card ${type}`}>

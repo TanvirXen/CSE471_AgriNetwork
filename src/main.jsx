@@ -8,7 +8,8 @@ import ChamanPage from './temporary/chaman'
 import SearchMapPage from './temporary/chaman/SearchMapPage'
 import ShabibaPage from './temporary/shabiba'
 import SumaiyaPage from './temporary/sumaiya'
-import CropMarketplace from './temporary/sumaiya/CropMarketplace.jsx'
+import CropMarketplace from './Pages/CropMarketplace.jsx'
+import CropDetails from './Pages/CropDetails.jsx'
 import OrderHistory from './temporary/sumaiya/OrderHistory.jsx'
 import Marketplace from './temporary/shabiba/Marketplace.jsx'
 import Verification from './temporary/shabiba/Verification.jsx'
@@ -48,6 +49,23 @@ createRoot(document.getElementById('root')).render(
           <Route path="/shabiba/marketplace" element={<Marketplace />} />
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/shabiba/verification" element={<Verification />} />
+      <Routes>
+        <Route path="/" element={<App />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/complete-profile/:role" element={<CompleteProfile />} />
+        <Route path="/verify-nid" element={<NIDVerification />} />
+        <Route path="/tanvir" element={<TanvirPage />} />
+        <Route path="/chaman" element={<ChamanPage />} />
+        <Route path="/chaman/search" element={<SearchMapPage />} />
+        <Route path="/shabiba" element={<ShabibaPage />} />
+        <Route path="/sumaiya" element={<SumaiyaPage />} />
+        <Route path="/sumaiya/CropMarketplace" element={<CropMarketplace />} />
+        <Route path="/sumaiya/crop/:id" element={<CropDetails />} />
+        <Route path="/sumaiya/OrderHistory" element={<OrderHistory />} />
+        <Route path="/shabiba/marketplace" element={<Marketplace />} />
+        <Route path="/shabiba/verification" element={<Verification />} />
 
           {/* Protected Dashboard Routes */}
           <Route element={<ProtectedRoute />}>
@@ -56,7 +74,8 @@ createRoot(document.getElementById('root')).render(
               <Route path="profile" element={<DashboardProfile />} />
               <Route path="chatbot" element={<ChatbotPage />} />
               <Route path="orders" element={<div className="dashboard-content"><h3>Orders Page (Coming Soon)</h3></div>} />
-              <Route path="messages" element={<div className="dashboard-content"><h3>Messages Page (Coming Soon)</h3></div>} />
+              <Route path="messages" element={<ChamanPage />} />
+              <Route path="map" element={<SearchMapPage />} />
               <Route path="settings" element={<div className="dashboard-content"><h3>Settings Page (Coming Soon)</h3></div>} />
             </Route>
           </Route>
@@ -68,3 +87,4 @@ createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </StrictMode>,
 )
+

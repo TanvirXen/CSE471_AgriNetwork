@@ -24,7 +24,10 @@ function App() {
             <Link to="/marketplace">Marketplace</Link>
           </li>
           <li>
-            <Link to="/sumaiya">Sumaiya</Link>
+            <Link to="/sumaiya/CropMarketplace">Sumaiya CropMarketplace</Link>
+          </li>
+          <li>
+            <Link to="/sumaiya/OrderHistory">Sumaiya OrderHistory</Link>
           </li>
         </ul>
       </nav>

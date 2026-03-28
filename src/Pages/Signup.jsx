@@ -45,7 +45,18 @@ const Signup = () => {
         body: JSON.stringify({ ...formData, role: role.charAt(0).toUpperCase() + role.slice(1) })
       });
 
+<<<<<<< HEAD
+      let data;
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        data = { message: text || 'An unexpected error occurred.' };
+      }
+=======
       const data = await res.json();
+>>>>>>> upstream/main
 
       if (res.ok) {
         login(data.token, data.user);
@@ -54,6 +65,10 @@ const Signup = () => {
         setError(data.message || 'Registration failed.');
       }
     } catch (err) {
+<<<<<<< HEAD
+      console.error('Signup error:', err);
+=======
+>>>>>>> upstream/main
       setError('Connection error. Is the server running?');
     } finally {
       setLoading(false);

@@ -3,7 +3,7 @@
 
 import ResultCard from "./ResultCard";
 
-function ResultsList({ results, selectedId, onSelectResult }) {
+function ResultsList({ results, selectedId, onSelectResult, onChat, onViewDetails }) {
     return (
         <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
             <div className="sm-results-header">
@@ -25,6 +25,8 @@ function ResultsList({ results, selectedId, onSelectResult }) {
                             item={item}
                             isSelected={selectedId === item.id}
                             onClick={onSelectResult}
+                            onChat={onChat}
+                            onViewDetails={onViewDetails}
                         />
                     ))
                 ) : (
