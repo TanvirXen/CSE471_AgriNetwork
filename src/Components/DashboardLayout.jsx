@@ -1,38 +1,27 @@
 import React, { useState } from 'react';
-<<<<<<< HEAD
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-=======
-import { Link, useLocation, Outlet } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
->>>>>>> upstream/main
-import { 
-  LayoutDashboard, 
-  UserCircle, 
-  ShoppingBag, 
-  MessageSquare, 
-  Bell, 
-  Search, 
-  Menu, 
-  X, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  UserCircle,
+  ShoppingBag,
+  MessageSquare,
+  Bell,
+  Search,
+  Menu,
+  LogOut,
   Leaf,
-<<<<<<< HEAD
   Map,
-=======
->>>>>>> upstream/main
   Settings,
-  ChevronRight,
-  Bot
+  Bot,
 } from 'lucide-react';
 import '../CSS/Dashboard.css';
 
 const DashboardLayout = () => {
-<<<<<<< HEAD
   const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -42,12 +31,13 @@ const DashboardLayout = () => {
   };
 
   const userInitials = user?.fullName
-    ? user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    ? user.fullName
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
     : '??';
-=======
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const location = useLocation();
->>>>>>> upstream/main
 
   const navItems = [
     { name: 'Overview', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
@@ -56,29 +46,22 @@ const DashboardLayout = () => {
     { name: 'AI Advisor', path: '/dashboard/chatbot', icon: <Bot size={20} /> },
     { name: 'Orders', path: '/dashboard/orders', icon: <ShoppingBag size={20} /> },
     { name: 'Messages', path: '/dashboard/messages', icon: <MessageSquare size={20} /> },
-<<<<<<< HEAD
     { name: 'AgriDiscovery Map', path: '/dashboard/map', icon: <Map size={20} /> },
     { name: 'Settings', path: '/dashboard/settings', icon: <Settings size={20} /> },
   ];
 
   const handleSearch = (e) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
+    if (e.key === 'Enter' && searchQuery.trim()) {
       navigate(`/dashboard/map?q=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery(""); // Clear after search
+      setSearchQuery('');
     }
   };
 
-=======
-    { name: 'Settings', path: '/dashboard/settings', icon: <Settings size={20} /> },
-  ];
-
->>>>>>> upstream/main
   return (
     <div className="dashboard-wrapper">
-      {/* Sidebar Overlay for Mobile */}
       <AnimatePresence>
         {isSidebarOpen && (
-          <motion.div 
+          <motion.div
             className="sidebar-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -88,13 +71,12 @@ const DashboardLayout = () => {
               position: 'fixed',
               inset: 0,
               backgroundColor: 'rgba(0,0,0,0.5)',
-              zIndex: 95
+              zIndex: 95,
             }}
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
       <aside className={`dashboard-sidebar ${isSidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-logo">
           <Leaf size={28} /> AgriNetwork
@@ -102,7 +84,7 @@ const DashboardLayout = () => {
 
         <nav className="sidebar-nav">
           {navItems.map((item) => (
-            <Link 
+            <Link
               key={item.path}
               to={item.path}
               className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
@@ -115,37 +97,36 @@ const DashboardLayout = () => {
         </nav>
 
         <div className="sidebar-footer">
-<<<<<<< HEAD
-          <button className="nav-item" style={{ width: '100%', color: '#ff85a1' }} onClick={handleLogout}>
-=======
-          <button className="nav-item" style={{ width: '100%', color: '#ff85a1' }}>
->>>>>>> upstream/main
+          <button
+            className="nav-item"
+            style={{ width: '100%', color: '#ff85a1' }}
+            onClick={handleLogout}
+          >
             <LogOut size={20} />
             <span>Logout</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="dashboard-main">
         <header className="dashboard-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button className="mobile-menu-toggle" onClick={() => setIsSidebarOpen(true)} style={{ display: 'none' }}>
+            <button
+              className="mobile-menu-toggle"
+              onClick={() => setIsSidebarOpen(true)}
+              style={{ display: 'none' }}
+            >
               <Menu size={24} color="var(--primary-dark)" />
             </button>
             <div className="header-search">
               <Search size={18} color="#888" />
-<<<<<<< HEAD
-              <input 
-                type="text" 
-                placeholder="Search markets, products..." 
+              <input
+                type="text"
+                placeholder="Search markets, products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearch}
               />
-=======
-              <input type="text" placeholder="Search markets, products..." />
->>>>>>> upstream/main
             </div>
           </div>
 
@@ -154,19 +135,12 @@ const DashboardLayout = () => {
               <Bell size={22} />
               <span className="notification-dot"></span>
             </div>
-            
+
             <div className="user-profile-toggle">
-<<<<<<< HEAD
               <div className="avatar-small">{userInitials}</div>
               <div style={{ textAlign: 'left', display: 'none', md: 'block' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: '700' }}>{user?.fullName || 'Guest'}</div>
                 <div style={{ fontSize: '0.75rem', color: '#888' }}>{user?.role || 'User'}</div>
-=======
-              <div className="avatar-small">JD</div>
-              <div style={{ textAlign: 'left', display: 'none', md: 'block' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700' }}>John Doe</div>
-                <div style={{ fontSize: '0.75rem', color: '#888' }}>Vendor</div>
->>>>>>> upstream/main
               </div>
             </div>
           </div>

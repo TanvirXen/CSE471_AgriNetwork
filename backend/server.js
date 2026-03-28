@@ -21,7 +21,6 @@ io.on("connection", (socket) => {
     socket.join(conversationId);
   });
 
-<<<<<<< HEAD
   socket.on("join_user", (userId) => {
     socket.join(userId);
     console.log(`User ${userId} joined their personal room`);
@@ -43,10 +42,6 @@ io.on("connection", (socket) => {
 
   socket.on("reject_offer", (data) => {
     io.to(data.conversationId).emit("offer_rejected", data);
-=======
-  socket.on("send_message", (data) => {
-    io.to(data.conversationId).emit("receive_message", data);
->>>>>>> upstream/main
   });
 
   socket.on("disconnect", () => {
