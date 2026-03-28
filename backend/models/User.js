@@ -75,7 +75,11 @@ const UserSchema = new mongoose.Schema(
     role: {
       type: String,
       required: true,
+<<<<<<< HEAD
+      enum: ["Customer", "Farmer", "Vendor", "Wholesaler", "DeliveryPartner", "Admin", "Moderator"],
+=======
       enum: ["Farmer", "Vendor", "Wholesaler", "DeliveryPartner", "Admin", "Moderator"],
+>>>>>>> upstream/main
       index: true,
     },
 

@@ -37,7 +37,7 @@ function SearchBar({ onSearch }) {
                 <span className="sm-search-icon">🔍</span>
                 <input
                     className="sm-search-input"
-                    placeholder="Search for crops, farmers, or markets..."
+                    placeholder="Search for Messages..."
                     value={query}
                     onChange={(e) => {
                         setQuery(e.target.value);

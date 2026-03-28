@@ -21,8 +21,32 @@ io.on("connection", (socket) => {
     socket.join(conversationId);
   });
 
+<<<<<<< HEAD
+  socket.on("join_user", (userId) => {
+    socket.join(userId);
+    console.log(`User ${userId} joined their personal room`);
+  });
+
+  socket.on("send_message", (data) => {
+    // Emit to the conversation room
+    io.to(data.conversationId).emit("receive_message", data);
+    
+    // Also emit to the recipient's personal room for sidebar updates/notifications
+    if (data.receiverId) {
+      io.to(data.receiverId).emit("new_notification", data);
+    }
+  });
+
+  socket.on("accept_offer", (data) => {
+    io.to(data.conversationId).emit("offer_accepted", data);
+  });
+
+  socket.on("reject_offer", (data) => {
+    io.to(data.conversationId).emit("offer_rejected", data);
+=======
   socket.on("send_message", (data) => {
     io.to(data.conversationId).emit("receive_message", data);
+>>>>>>> upstream/main
   });
 
   socket.on("disconnect", () => {

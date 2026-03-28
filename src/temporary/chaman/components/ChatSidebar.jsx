@@ -1,142 +1,134 @@
-// ChatSidebar.jsx — AgriNetwork Bangladesh
-// Left panel: search + conversation list
+import { useState, useEffect } from "react";
+import { useAuth } from "../../../context/AuthContext";
 
-const CONVERSATIONS = [
-    {
-        id: 1,
-        name: "Rahim Uddin",
-        role: "farmer",
-        avatar: "RU",
-        lastMsg: "৳55/kg is my final offer for the rice.",
-        time: "2m",
-        unread: 2,
-        online: true,
-        crop: "Rice",
-    },
-    {
-        id: 2,
-        name: "Dhaka Fresh Ltd.",
-        role: "vendor",
-        avatar: "DF",
-        lastMsg: "We can pick up from Manikganj on Friday.",
-        time: "18m",
-        unread: 0,
-        online: true,
-        crop: "Potato",
-    },
-    {
-        id: 3,
-        name: "Karim Agro",
-        role: "vendor",
-        avatar: "KA",
-        lastMsg: "Counter offer accepted ✔",
-        time: "1h",
-        unread: 0,
-        online: false,
-        crop: "Onion",
-    },
-    {
-        id: 4,
-        name: "Nasreen Begum",
-        role: "farmer",
-        avatar: "NB",
-        lastMsg: "How much for 500 kg of mustard?",
-        time: "3h",
-        unread: 1,
-        online: true,
-        crop: "Mustard",
-    },
-    {
-        id: 5,
-        name: "BD Spice House",
-        role: "vendor",
-        avatar: "BS",
-        lastMsg: "Deal confirmed! Payment on delivery.",
-        time: "Yesterday",
-        unread: 0,
-        online: false,
-        crop: "Garlic",
-    },
-    {
-        id: 6,
-        name: "Mojibur Rahman",
-        role: "farmer",
-        avatar: "MR",
-        lastMsg: "My tomatoes are fully ripe now.",
-        time: "Yesterday",
-        unread: 0,
-        online: false,
-        crop: "Tomato",
-    },
-    {
-        id: 7,
-        name: "Sylhet Market Co.",
-        role: "vendor",
-        avatar: "SM",
-        lastMsg: "Can you do ৳90/kg for lentils?",
-        time: "2d",
-        unread: 3,
-        online: true,
-        crop: "Lentil",
-    },
-];
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
-function ChatSidebar({ activeId, onSelect, isOpen }) {
+function ChatSidebar({ activeId, onSelect, isOpen, extraConversations = [] }) {
+    const { token } = useAuth();
+    const [conversations, setConversations] = useState([]);
+    const [search, setSearch] = useState("");
+    const [activeTab, setActiveTab] = useState("All");
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchConversations = async () => {
+            if (!token) {
+                setLoading(false);
+                return;
+            }
+            try {
+                const res = await fetch(`${API_BASE}/api/messages/conversations`, {
+                    headers: { "x-auth-token": token },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setConversations(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch conversations:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchConversations();
+        // Polling for new messages every 10 seconds
+        const interval = setInterval(fetchConversations, 10000);
+        return () => clearInterval(interval);
+    }, [token]);
+
+    // Merge backend conversations + dynamic ones from map navigation
+    const allConvs = [
+        ...extraConversations,
+        ...conversations.map(c => ({
+            id: c.conversationId,
+            conversationId: c.conversationId,
+            userId: c.otherUser?._id,
+            name: c.otherUser?.fullName,
+            role: c.otherUser?.role || "user",
+            avatar: c.otherUser?.profile?.avatar || c.otherUser?.fullName?.slice(0, 2).toUpperCase(),
+            lastMsg: c.lastMessage,
+            time: new Date(c.lastTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            unread: c.unread || 0,
+            online: true, // Simplified
+        })).filter(c => !extraConversations.find(e => e.userId === c.userId))
+    ];
+
+    const filtered = allConvs.filter((c) => {
+        const matchesSearch =
+            !search ||
+            c.name?.toLowerCase().includes(search.toLowerCase()) ||
+            (c.crop && c.crop.toLowerCase().includes(search.toLowerCase()));
+
+        const matchesTab =
+            activeTab === "All" ||
+            (activeTab === "Farmers" && (c.role === "farmer" || c.role === "Farmer")) ||
+            (activeTab === "Vendors" && (c.role === "vendor" || c.role === "Vendor"));
+
+        return matchesSearch && matchesTab;
+    });
+
     return (
         <aside className={`cn-sidebar${isOpen ? " open" : ""}`}>
             {/* Search */}
             <div className="cn-sidebar__header">
                 <div className="cn-sidebar__search">
                     <span className="cn-sidebar__search-icon">🔍</span>
-                    <input placeholder="Search farmers, vendors, crops…" />
-                </div>
-                <div className="cn-sidebar__tabs">
-                    <button className="cn-sidebar__tab active">All</button>
-                    <button className="cn-sidebar__tab">Farmers</button>
-                    <button className="cn-sidebar__tab">Vendors</button>
+                    <input
+                        placeholder="Search for Messages..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
                 </div>
             </div>
 
             {/* Conversation List */}
             <div className="cn-sidebar__list">
-                {CONVERSATIONS.map((conv) => (
-                    <div
-                        key={conv.id}
-                        className={`cn-conv-item${activeId === conv.id ? " active" : ""}`}
-                        onClick={() => onSelect(conv)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => e.key === "Enter" && onSelect(conv)}
-                        aria-label={`Chat with ${conv.name}`}
-                    >
-                        {/* Avatar */}
-                        <div className="cn-conv-item__avatar-wrap">
-                            <div className="cn-conv-item__avatar">{conv.avatar}</div>
-                            {conv.online && <span className="cn-conv-item__online" />}
-                        </div>
-
-                        {/* Body */}
-                        <div className="cn-conv-item__body">
-                            <div className="cn-conv-item__top">
-                                <span className="cn-conv-item__name">{conv.name}</span>
-                                <span className="cn-conv-item__time">{conv.time}</span>
-                            </div>
-                            <div className="cn-conv-item__bottom">
-                                <span className="cn-conv-item__preview">{conv.lastMsg}</span>
-                                <span className={`cn-conv-item__role-tag ${conv.role}`}>
-                                    {conv.role === "farmer" ? "🌾" : "🏪"} {conv.role}
-                                </span>
-                                {conv.unread > 0 && (
-                                    <span className="cn-unread-badge">{conv.unread}</span>
-                                )}
-                            </div>
-                        </div>
+                {loading && !allConvs.length ? (
+                    <div style={{ padding: "2rem", textAlign: "center", color: "#888" }}>Loading...</div>
+                ) : filtered.length === 0 ? (
+                    <div style={{ padding: "2rem", textAlign: "center", color: "#888", fontSize: "0.9rem" }}>
+                        {token ? "No conversations found" : "Login to see your messages"}
                     </div>
-                ))}
+                ) : (
+                    filtered.map((conv) => (
+                        <div
+                            key={conv.id}
+                            className={`cn-conv-item${activeId === conv.id ? " active" : ""}`}
+                            onClick={() => onSelect(conv)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => e.key === "Enter" && onSelect(conv)}
+                            aria-label={`Chat with ${conv.name}`}
+                        >
+                            {/* Avatar */}
+                            <div className="cn-conv-item__avatar-wrap">
+                                <div className="cn-conv-item__avatar">{conv.avatar}</div>
+                                {conv.online && <span className="cn-conv-item__online" />}
+                            </div>
+
+                            {/* Body */}
+                            <div className="cn-conv-item__body">
+                                <div className="cn-conv-item__top">
+                                    <span className="cn-conv-item__name">{conv.name}</span>
+                                    <span className="cn-conv-item__time">{conv.time}</span>
+                                </div>
+                                <div className="cn-conv-item__bottom">
+                                    <span className="cn-conv-item__preview">{conv.lastMsg}</span>
+                                    <span className={`cn-conv-item__role-tag ${conv.role?.toLowerCase()}`}>
+                                        {conv.role?.toLowerCase() === "farmer" ? "🌾" : "🏪"} {conv.role}
+                                    </span>
+                                    {conv.unread > 0 && (
+                                        <span className="cn-unread-badge">{conv.unread}</span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
         </aside>
     );
 }
 
-export { CONVERSATIONS };
 export default ChatSidebar;

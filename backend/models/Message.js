@@ -1,5 +1,41 @@
 const mongoose = require("mongoose");
 
+<<<<<<< HEAD
+const MessageSchema = new mongoose.Schema(
+  {
+    conversationId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    sender: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    receiver: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    type: {
+      type: String,
+      enum: ["text", "negotiation", "status", "image", "audio", "file"],
+      default: "text",
+    },
+    text: {
+      type: String,
+      trim: true,
+    },
+    mediaUrl: {
+      type: String,
+      trim: true,
+    },
+    negotiationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Negotiation",
+    },
+=======
 const AttachmentSchema = new mongoose.Schema(
   {
     type: { type: String, enum: ["image", "video", "file", "audio"], required: true },
@@ -37,8 +73,17 @@ const MessageSchema = new mongoose.Schema(
 
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
+>>>>>>> upstream/main
   },
   { timestamps: true }
 );
 
+<<<<<<< HEAD
+// Helper: generate consistent conversation ID
+MessageSchema.statics.getConversationId = (userId1, userId2) => {
+  return [userId1.toString(), userId2.toString()].sort().join("_");
+};
+
+=======
+>>>>>>> upstream/main
 module.exports = mongoose.model("Message", MessageSchema);
