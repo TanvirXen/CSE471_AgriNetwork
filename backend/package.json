@@ -19,6 +19,7 @@
 >>>>>>> upstream/main
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.7",
+    "multer": "^2.1.1",
     "socket.io": "^4.8.1"
   }
 }

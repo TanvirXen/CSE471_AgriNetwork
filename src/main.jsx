@@ -31,6 +31,24 @@ import ProtectedRoute from './Components/ProtectedRoute'
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<App />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/complete-profile/:role" element={<CompleteProfile />} />
+          <Route path="/verify-nid" element={<NIDVerification />} />
+          <Route path="/tanvir" element={<TanvirPage />} />
+          <Route path="/chaman" element={<ChamanPage />} />
+          <Route path="/chaman/search" element={<SearchMapPage />} />
+          <Route path="/shabiba" element={<ShabibaPage />} />
+          <Route path="/sumaiya" element={<SumaiyaPage />} />
+          <Route path="/sumaiya/CropMarketplace" element={<CropMarketplace />} />
+          <Route path="/sumaiya/OrderHistory" element={<OrderHistory />} />
+          <Route path="/shabiba/marketplace" element={<Marketplace />} />
+          <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/shabiba/verification" element={<Verification />} />
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/login" element={<Login />} />
