@@ -2,20 +2,38 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Bot } from 'lucide-react';
 import '../CSS/Auth.css';
+import { fetchAdvisorReply } from '../services/advisorApi';
+
+const TRIGGER_DRAG_THRESHOLD = 8;
 
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isTriggerDragging, setIsTriggerDragging] = useState(false);
   const [windowPosition, setWindowPosition] = useState(null);
+  const [triggerPosition, setTriggerPosition] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState([
-    { text: "Hi! I'm AgriBot. How can I help you today?", sender: 'bot' }
+    {
+      text: "Assalamu alaikum. I am AgriBot, your Bangladesh agriculture advisor. Ask about crop planning, pest management, market timing, or farm decisions.",
+      sender: 'bot',
+    }
   ]);
   const [inputValue, setInputValue] = useState('');
+  const triggerRef = useRef(null);
   const chatbotWindowRef = useRef(null);
   const dragStateRef = useRef({
     active: false,
     offsetX: 0,
     offsetY: 0,
+  });
+  const triggerDragStateRef = useRef({
+    active: false,
+    offsetX: 0,
+    offsetY: 0,
+    startX: 0,
+    startY: 0,
+    moved: false,
   });
 
   const clampPosition = useCallback((x, y) => {
@@ -31,6 +49,20 @@ const Chatbot = () => {
     };
   }, []);
 
+  const clampTriggerPosition = useCallback((x, y) => {
+    const trigger = triggerRef.current;
+    const triggerWidth = trigger?.offsetWidth || 60;
+    const triggerHeight = trigger?.offsetHeight || 60;
+    const edgePadding = 8;
+    const maxX = Math.max(edgePadding, window.innerWidth - triggerWidth - edgePadding);
+    const maxY = Math.max(edgePadding, window.innerHeight - triggerHeight - edgePadding);
+
+    return {
+      x: Math.min(Math.max(edgePadding, x), maxX),
+      y: Math.min(Math.max(edgePadding, y), maxY),
+    };
+  }, []);
+
   const setDefaultWindowPosition = useCallback(() => {
     const widget = chatbotWindowRef.current;
     const widgetWidth = widget?.offsetWidth || 350;
@@ -39,6 +71,15 @@ const Chatbot = () => {
     const defaultY = window.innerHeight - widgetHeight - 104;
     setWindowPosition(clampPosition(defaultX, defaultY));
   }, [clampPosition]);
+
+  const setDefaultTriggerPosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    const triggerWidth = trigger?.offsetWidth || 60;
+    const triggerHeight = trigger?.offsetHeight || 60;
+    const defaultX = window.innerWidth - triggerWidth - 32;
+    const defaultY = window.innerHeight - triggerHeight - 32;
+    setTriggerPosition(clampTriggerPosition(defaultX, defaultY));
+  }, [clampTriggerPosition]);
 
   const startDrag = useCallback((clientX, clientY) => {
     if (!windowPosition) return;
@@ -53,6 +94,25 @@ const Chatbot = () => {
   const stopDrag = useCallback(() => {
     dragStateRef.current.active = false;
     setIsDragging(false);
+  }, []);
+
+  const startTriggerDrag = useCallback((clientX, clientY) => {
+    if (!triggerPosition) return;
+
+    triggerDragStateRef.current = {
+      active: true,
+      offsetX: clientX - triggerPosition.x,
+      offsetY: clientY - triggerPosition.y,
+      startX: clientX,
+      startY: clientY,
+      moved: false,
+    };
+    setIsTriggerDragging(true);
+  }, [triggerPosition]);
+
+  const stopTriggerDrag = useCallback(() => {
+    triggerDragStateRef.current.active = false;
+    setIsTriggerDragging(false);
   }, []);
 
   useEffect(() => {
@@ -91,6 +151,55 @@ const Chatbot = () => {
   }, [clampPosition, isOpen, stopDrag]);
 
   useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!triggerDragStateRef.current.active) return;
+
+      const deltaX = Math.abs(e.clientX - triggerDragStateRef.current.startX);
+      const deltaY = Math.abs(e.clientY - triggerDragStateRef.current.startY);
+      if (!triggerDragStateRef.current.moved && (deltaX > TRIGGER_DRAG_THRESHOLD || deltaY > TRIGGER_DRAG_THRESHOLD)) {
+        triggerDragStateRef.current.moved = true;
+      }
+      if (!triggerDragStateRef.current.moved) return;
+
+      const x = e.clientX - triggerDragStateRef.current.offsetX;
+      const y = e.clientY - triggerDragStateRef.current.offsetY;
+      setTriggerPosition(clampTriggerPosition(x, y));
+    };
+
+    const handleTouchMove = (e) => {
+      if (!triggerDragStateRef.current.active || e.touches.length === 0) return;
+      const touch = e.touches[0];
+
+      const deltaX = Math.abs(touch.clientX - triggerDragStateRef.current.startX);
+      const deltaY = Math.abs(touch.clientY - triggerDragStateRef.current.startY);
+      if (!triggerDragStateRef.current.moved && (deltaX > TRIGGER_DRAG_THRESHOLD || deltaY > TRIGGER_DRAG_THRESHOLD)) {
+        triggerDragStateRef.current.moved = true;
+      }
+      if (!triggerDragStateRef.current.moved) return;
+
+      const x = touch.clientX - triggerDragStateRef.current.offsetX;
+      const y = touch.clientY - triggerDragStateRef.current.offsetY;
+      setTriggerPosition(clampTriggerPosition(x, y));
+    };
+
+    const handleDragEnd = () => stopTriggerDrag();
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleDragEnd);
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleDragEnd);
+    window.addEventListener('touchcancel', handleDragEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleDragEnd);
+      window.removeEventListener('touchcancel', handleDragEnd);
+    };
+  }, [clampTriggerPosition, stopTriggerDrag]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     const rafId = requestAnimationFrame(() => {
@@ -115,29 +224,94 @@ const Chatbot = () => {
     };
   }, [clampPosition, isOpen, setDefaultWindowPosition, windowPosition]);
 
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (!inputValue.trim()) return;
+  useEffect(() => {
+    const rafId = requestAnimationFrame(() => {
+      if (!triggerPosition) {
+        setDefaultTriggerPosition();
+      } else {
+        setTriggerPosition(clampTriggerPosition(triggerPosition.x, triggerPosition.y));
+      }
+    });
 
-    const userMessage = { text: inputValue, sender: 'user' };
+    const handleResize = () => {
+      setTriggerPosition((prev) => {
+        if (!prev) return prev;
+        return clampTriggerPosition(prev.x, prev.y);
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [clampTriggerPosition, setDefaultTriggerPosition, triggerPosition]);
+
+  const handleTriggerClick = () => {
+    if (triggerDragStateRef.current.moved) {
+      triggerDragStateRef.current.moved = false;
+      return;
+    }
+    setIsOpen((prev) => !prev);
+  };
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    const messageText = inputValue.trim();
+    if (!messageText || isTyping) return;
+
+    const userMessage = { text: messageText, sender: 'user' };
+    const historyForApi = messages.map((msg) => ({
+      role: msg.sender === 'user' ? 'user' : 'assistant',
+      text: msg.text,
+    }));
+
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
+    setIsTyping(true);
 
-    // Simple bot response simulation
-    setTimeout(() => {
-      let botResponse = "That's interesting! Tell me more about your requirements.";
-      if (inputValue.toLowerCase().includes('signup')) {
-        botResponse = "To sign up, just click on 'Create account' on the login page. You can choose to be a vendor or a customer!";
-      } else if (inputValue.toLowerCase().includes('nid')) {
-        botResponse = "NID verification is required to build trust in our marketplace. You'll need to upload clear photos of both sides.";
-      }
-      setMessages(prev => [...prev, { text: botResponse, sender: 'bot' }]);
-    }, 1000);
+    try {
+      const reply = await fetchAdvisorReply({
+        message: messageText,
+        history: historyForApi,
+      });
+      setMessages((prev) => [...prev, { text: reply, sender: 'bot' }]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: err.message || 'AgriBot is temporarily unavailable. Please try again.',
+          sender: 'bot',
+        },
+      ]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (
     <>
-      <button className="chatbot-trigger" onClick={() => setIsOpen(!isOpen)}>
+      <button
+        ref={triggerRef}
+        className={`chatbot-trigger ${isTriggerDragging ? 'dragging' : ''}`}
+        onMouseDown={(e) => {
+          if (e.button !== 0) return;
+          startTriggerDrag(e.clientX, e.clientY);
+        }}
+        onTouchStart={(e) => {
+          if (e.touches.length === 0) return;
+          const touch = e.touches[0];
+          startTriggerDrag(touch.clientX, touch.clientY);
+        }}
+        onClick={handleTriggerClick}
+        style={triggerPosition ? {
+          left: `${triggerPosition.x}px`,
+          top: `${triggerPosition.y}px`,
+          right: 'auto',
+          bottom: 'auto',
+        } : undefined}
+      >
         {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
       </button>
 
@@ -187,6 +361,7 @@ const Chatbot = () => {
                   {msg.text}
                 </div>
               ))}
+              {isTyping && <div className="message bot">AgriBot is typing...</div>}
             </div>
 
             <form className="chatbot-input" onSubmit={handleSend}>
@@ -195,8 +370,9 @@ const Chatbot = () => {
                 placeholder="Type your message..." 
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
+                disabled={isTyping}
               />
-              <button type="submit" style={{ color: 'var(--primary-main)' }}>
+              <button type="submit" style={{ color: 'var(--primary-main)' }} disabled={isTyping || !inputValue.trim()}>
                 <Send size={20} />
               </button>
             </form>

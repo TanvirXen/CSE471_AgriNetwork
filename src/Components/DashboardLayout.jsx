@@ -41,7 +41,7 @@ const DashboardLayout = () => {
 
   const navItems = [
     { name: 'Overview', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
-    { name: 'Marketplace', path: '/marketplace', icon: <ShoppingBag size={20} /> },
+    { name: 'Crop Marketplace', path: '/crop-marketplace', icon: <ShoppingBag size={20} /> },
     { name: 'My Profile', path: '/dashboard/profile', icon: <UserCircle size={20} /> },
     { name: 'AI Advisor', path: '/dashboard/chatbot', icon: <Bot size={20} /> },
     { name: 'Orders', path: '/dashboard/orders', icon: <ShoppingBag size={20} /> },

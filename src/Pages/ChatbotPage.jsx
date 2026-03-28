@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, Sparkles, TrendingUp, HelpCircle, Info } from 'lucide-react';
+import { Send, Bot, User, Sparkles, TrendingUp, Info } from 'lucide-react';
 import '../CSS/ChatbotPage.css';
+import { fetchAdvisorReply } from '../services/advisorApi';
 
 const ChatbotPage = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
       role: 'ai',
-      text: "Hello! I'm your AgriNetwork Advisor. I have access to our real-time database of crops, market trends, and seasonal advice. How can I help you today?",
+      text: 'Assalamu alaikum. I am your AI agriculture advisor for Bangladesh. Ask me about seasonal crop planning, pest and disease decisions, or market strategy.',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -17,54 +17,67 @@ const ChatbotPage = () => {
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const handleSend = (text = input) => {
-    if (!text.trim()) return;
+  const handleSend = async (text = input) => {
+    const messageText = text.trim();
+    if (!messageText || isTyping) return;
 
     const userMessage = {
       id: messages.length + 1,
       role: 'user',
-      text: text,
+      text: messageText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setMessages([...messages, userMessage]);
+    const historyForApi = messages.map((msg) => ({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      text: msg.text,
+    }));
+
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI response based on keywords
-    setTimeout(() => {
-      let aiText = "I'm analyzing that for you. Based on our current market data, the demand for seasonal crops remains high in your region.";
-      
-      const lowerText = text.toLowerCase();
-      if (lowerText.includes('price') || lowerText.includes('market')) {
-        aiText = "Current market analysis shows that Boro Rice prices have stabilized at à§³45/kg, while Organic Wheat is seeing a 15% increase in demand from wholesale buyers this week.";
-      } else if (lowerText.includes('crop') || lowerText.includes('advice')) {
-        aiText = "Based on your location and the upcoming season, it's an ideal time to prepare for Vegetable cultivation. Our top-performing farmers are currently focusing on high-yield hybrid varieties.";
-      } else if (lowerText.includes('available') || lowerText.includes('inventory')) {
-        aiText = "Searching our database... We currently have 120+ verified listings for Rice, 45 for Fish, and a growing list of Poultry sellers in your district.";
-      }
+    try {
+      const reply = await fetchAdvisorReply({
+        message: messageText,
+        history: historyForApi,
+      });
 
-      setMessages(prev => [...prev, {
-        id: prev.length + 1,
-        role: 'ai',
-        text: aiText,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          role: 'ai',
+          text: reply,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          role: 'ai',
+          text: err.message || 'Advisor is temporarily unavailable. Please try again.',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const suggestedPrompts = [
     { text: "What's the current market price for Boro Rice?", icon: <TrendingUp size={14} /> },
-    { text: "Suggest crops for the next season", icon: <Sparkles size={14} /> },
-    { text: "Show available wholesale fish stocks", icon: <Info size={14} /> }
+    { text: 'Suggest crops for the next season in Bangladesh', icon: <Sparkles size={14} /> },
+    { text: 'How to reduce blast disease risk in paddy?', icon: <Info size={14} /> }
   ];
 
   return (
@@ -78,7 +91,7 @@ const ChatbotPage = () => {
         </div>
         <div>
           <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '700' }}>Agri-Intelligence Advisor</h3>
-          <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Online â€¢ AI Powered Guidance</p>
+          <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Online • AI Powered Guidance</p>
         </div>
       </header>
 
@@ -87,7 +100,7 @@ const ChatbotPage = () => {
           <div key={msg.id} className={`message-bubble ${msg.role === 'ai' ? 'message-ai' : 'message-user'}`}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', opacity: 0.7, fontSize: '0.75rem' }}>
               {msg.role === 'ai' ? <Bot size={14} /> : <User size={14} />}
-              <span>{msg.role === 'ai' ? 'Advisor' : 'You'} â€¢ {msg.time}</span>
+              <span>{msg.role === 'ai' ? 'Advisor' : 'You'} • {msg.time}</span>
             </div>
             {msg.text}
           </div>
@@ -104,10 +117,11 @@ const ChatbotPage = () => {
 
       <div className="suggested-prompts">
         {suggestedPrompts.map((prompt, idx) => (
-          <button 
-            key={idx} 
-            className="prompt-chip" 
+          <button
+            key={idx}
+            className="prompt-chip"
             onClick={() => handleSend(prompt.text)}
+            disabled={isTyping}
           >
             {prompt.icon}
             {prompt.text}
@@ -117,12 +131,13 @@ const ChatbotPage = () => {
 
       <form className="chat-input-area" onSubmit={(e) => { e.preventDefault(); handleSend(); }}>
         <div className="chat-input-wrapper">
-          <input 
-            type="text" 
-            className="chat-input-field" 
-            placeholder="Ask about market prices, crop advice, or database listings..." 
+          <input
+            type="text"
+            className="chat-input-field"
+            placeholder="Ask about crop planning, disease, irrigation, or market timing..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            disabled={isTyping}
           />
         </div>
         <button type="submit" className="send-button" disabled={!input.trim() || isTyping}>

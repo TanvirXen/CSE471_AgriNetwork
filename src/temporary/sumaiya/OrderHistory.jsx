@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, Filter, X, Download, Package, FileText, ChevronRight, AlertCircle } from 'lucide-react';
+import { Search, Calendar, Filter, X, Download, Package, FileText, AlertCircle } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import './OrderHistory.css';
 import OrderTimeline from './components/OrderTimeline';
 import CancelRefundModal from './components/CancelRefundModal';
@@ -71,6 +72,8 @@ const STATUS_COLORS = {
 };
 
 const OrderHistory = () => {
+  const location = useLocation();
+  const isDashboardRoute = location.pathname.startsWith('/dashboard');
   const [orders, setOrders] = useState(MOCK_ORDERS);
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterDate, setFilterDate] = useState('');
@@ -112,7 +115,7 @@ const OrderHistory = () => {
   };
 
   return (
-    <div className="order-history-wrapper">
+    <div className={`order-history-wrapper ${isDashboardRoute ? 'dashboard-embedded' : ''}`}>
       <div className="order-history-container">
 
         {/* Header */}
@@ -268,7 +271,7 @@ const OrderHistory = () => {
               </div>
 
               <div className="modal-body">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div className="modal-order-summary">
                   <h3 style={{ margin: 0, color: 'var(--primary-dark)', fontSize: '1.5rem' }}>{selectedOrder.id}</h3>
                   <div className={`status-badge ${STATUS_COLORS[selectedOrder.status]}`}>
                     {selectedOrder.status}
@@ -346,13 +349,11 @@ const OrderHistory = () => {
       <AnimatePresence>
         {toastMessage && (
           <motion.div
+            className="order-history-toast"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
             style={{
-              position: 'fixed',
-              bottom: '2rem',
-              right: '2rem',
               backgroundColor: 'var(--primary-dark)',
               color: 'var(--white)',
               padding: '1rem 1.5rem',

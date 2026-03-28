@@ -49,6 +49,8 @@ jobs:
         run: |
           echo "MONGO_URI=${{ secrets.MONGO_URI }}" > backend/.env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> backend/.env
+          echo "GEMINI_MODEL=gemini-2.0-flash" >> backend/.env
           echo "PORT=${{ env.APP_PORT }}" >> backend/.env
           echo "NODE_ENV=${{ env.NODE_ENV }}" >> backend/.env
 

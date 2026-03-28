@@ -216,6 +216,13 @@
   color: white;
   box-shadow: var(--shadow-md);
   z-index: 1000;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.chatbot-trigger.dragging {
+  cursor: grabbing;
 }
 
 .chatbot-window {

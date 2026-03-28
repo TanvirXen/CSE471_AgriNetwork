@@ -17,7 +17,6 @@ import Signup from './Pages/Signup'
 import ForgotPassword from './Pages/ForgotPassword'
 import CompleteProfile from './Pages/CompleteProfile'
 import NIDVerification from './Pages/NIDVerification'
-import Chatbot from './Components/Chatbot'
 import DashboardLayout from './Components/DashboardLayout'
 import DashboardOverview from './Pages/DashboardOverview'
 import DashboardProfile from './Pages/DashboardProfile'
@@ -56,6 +55,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/chaman/search" element={<SearchMapPage />} />
           <Route path="/shabiba" element={<ShabibaPage />} />
           <Route path="/sumaiya" element={<SumaiyaPage />} />
+          <Route path="/crop-marketplace" element={<CropMarketplace />} />
           <Route path="/sumaiya/CropMarketplace" element={<CropMarketplace />} />
           <Route path="/sumaiya/crop/:id" element={<CropDetails />} />
           <Route path="/sumaiya/OrderHistory" element={<OrderHistory />} />
@@ -69,7 +69,7 @@ createRoot(document.getElementById('root')).render(
               <Route index element={<DashboardOverview />} />
               <Route path="profile" element={<DashboardProfile />} />
               <Route path="chatbot" element={<ChatbotPage />} />
-              <Route path="orders" element={<div className="dashboard-content"><h3>Orders Page (Coming Soon)</h3></div>} />
+              <Route path="orders" element={<OrderHistory />} />
               <Route path="messages" element={<ChamanPage />} />
               <Route path="map" element={<SearchMapPage />} />
               <Route path="settings" element={<div className="dashboard-content"><h3>Settings Page (Coming Soon)</h3></div>} />
@@ -78,7 +78,6 @@ createRoot(document.getElementById('root')).render(
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-        <Chatbot />
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
