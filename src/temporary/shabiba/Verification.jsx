@@ -58,7 +58,8 @@ const Verification = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/users/verify-nid', {
+            const apiUrl = import.meta.env.VITE_API_URL || '';
+            const response = await fetch(`${apiUrl}/api/users/verify-nid`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`

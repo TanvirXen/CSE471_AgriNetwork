@@ -65,7 +65,7 @@ const NIDVerification = () => {
         try {
             // Priority: context token -> localStorage token
             const authToken = token || localStorage.getItem('token');
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const apiUrl = import.meta.env.VITE_API_URL || '';
             
             const response = await fetch(`${apiUrl}/api/users/verify-nid`, {
                 method: 'POST',

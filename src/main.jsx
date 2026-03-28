@@ -2,7 +2,6 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom'
 import './index.css'
-import App from './App.jsx'
 import TanvirPage from './temporary/tanvir'
 import ChamanPage from './temporary/chaman'
 import SearchMapPage from './temporary/chaman/SearchMapPage'
@@ -23,9 +22,22 @@ import DashboardLayout from './Components/DashboardLayout'
 import DashboardOverview from './Pages/DashboardOverview'
 import DashboardProfile from './Pages/DashboardProfile'
 import ChatbotPage from './Pages/ChatbotPage'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './Components/ProtectedRoute'
 
+const RootRedirect = () => {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--neutral-bg)' }}>
+        <div className="loader">Loading...</div>
+      </div>
+    )
+  }
+
+  return <Navigate to={user ? '/dashboard' : '/login'} replace />
+}
 
 
 createRoot(document.getElementById('root')).render(
@@ -33,7 +45,7 @@ createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<App />} />
+          <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

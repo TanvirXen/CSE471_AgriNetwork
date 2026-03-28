@@ -9,7 +9,7 @@ const Marketplace = () => {
     const [streams, setStreams] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const API_BASE_URL = 'http://localhost:5000/api/market';
+    const API_BASE_URL = `${import.meta.env.VITE_API_URL || ''}/api/market`;
 
     useEffect(() => {
         const fetchMarketData = async () => {

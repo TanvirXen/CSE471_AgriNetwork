@@ -246,6 +246,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.chatbot-header.dragging {
+  cursor: grabbing;
 }
 
 .chatbot-messages {
