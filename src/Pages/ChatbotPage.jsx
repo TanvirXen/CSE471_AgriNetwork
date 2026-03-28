@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+ï»¿import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, TrendingUp, Info } from 'lucide-react';
 import '../CSS/ChatbotPage.css';
 import { fetchAdvisorReply } from '../services/advisorApi';
@@ -23,6 +23,22 @@ const ChatbotPage = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    const dashboardMain = document.querySelector('.dashboard-main');
+    const dashboardContent = document.querySelector('.dashboard-content');
+    const previousBodyOverflow = document.body.style.overflow;
+
+    dashboardMain?.classList.add('dashboard-main--chatbot');
+    dashboardContent?.classList.add('dashboard-content--chatbot');
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      dashboardMain?.classList.remove('dashboard-main--chatbot');
+      dashboardContent?.classList.remove('dashboard-content--chatbot');
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, []);
 
   const handleSend = async (text = input) => {
     const messageText = text.trim();
@@ -91,7 +107,7 @@ const ChatbotPage = () => {
         </div>
         <div>
           <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '700' }}>Agri-Intelligence Advisor</h3>
-          <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Online • AI Powered Guidance</p>
+          <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Online - AI Powered Guidance</p>
         </div>
       </header>
 
@@ -100,7 +116,7 @@ const ChatbotPage = () => {
           <div key={msg.id} className={`message-bubble ${msg.role === 'ai' ? 'message-ai' : 'message-user'}`}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', opacity: 0.7, fontSize: '0.75rem' }}>
               {msg.role === 'ai' ? <Bot size={14} /> : <User size={14} />}
-              <span>{msg.role === 'ai' ? 'Advisor' : 'You'} • {msg.time}</span>
+              <span>{msg.role === 'ai' ? 'Advisor' : 'You'} - {msg.time}</span>
             </div>
             {msg.text}
           </div>
