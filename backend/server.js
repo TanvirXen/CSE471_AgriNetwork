@@ -21,8 +21,27 @@ io.on("connection", (socket) => {
     socket.join(conversationId);
   });
 
+  socket.on("join_user", (userId) => {
+    socket.join(userId);
+    console.log(`User ${userId} joined their personal room`);
+  });
+
   socket.on("send_message", (data) => {
+    // Emit to the conversation room
     io.to(data.conversationId).emit("receive_message", data);
+    
+    // Also emit to the recipient's personal room for sidebar updates/notifications
+    if (data.receiverId) {
+      io.to(data.receiverId).emit("new_notification", data);
+    }
+  });
+
+  socket.on("accept_offer", (data) => {
+    io.to(data.conversationId).emit("offer_accepted", data);
+  });
+
+  socket.on("reject_offer", (data) => {
+    io.to(data.conversationId).emit("offer_rejected", data);
   });
 
   socket.on("disconnect", () => {
@@ -50,8 +69,10 @@ mongoose
   })
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err.message);
-    if (err.message.includes("querySrv ECONNREFUSED")) {
-      console.error("💡 TIP: This remains a DNS issue. Your computer cannot resolve the SRV record.");
-      console.error("   Try switching your DNS to 8.8.8.8 OR use the 'Standard Connection String' (mongodb://) from Atlas.");
+    if (err.message.includes("querySrv") || err.message.includes("ECONNREFUSED")) {
+      console.error("\n🚨 THIS IS A SRV DNS ISSUE 🚨");
+      console.error("Your internet/DNS cannot resolve '+srv' strings.");
+      console.error("FIX: Go to MongoDB Atlas -> Connect -> Drivers -> Node.js -> SELECT VERSION '2.2.12 or later'");
+      console.error("Then copy the string starting with 'mongodb://' and paste it in your .env\n");
     }
   });

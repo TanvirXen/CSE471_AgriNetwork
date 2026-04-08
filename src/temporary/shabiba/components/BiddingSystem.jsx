@@ -34,10 +34,6 @@ const BiddingSystem = ({ product, onClose }) => {
                         <span>Current Bid:</span>
                         <span style={{ fontWeight: '700', color: 'var(--primary-main)' }}>৳{product.price}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Total Quantity:</span>
-                        <span style={{ fontWeight: '700' }}>500 KG</span>
-                    </div>
                 </div>
 
                 <div className="bid-input-group">

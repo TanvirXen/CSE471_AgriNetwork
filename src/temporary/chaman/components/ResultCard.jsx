@@ -1,7 +1,7 @@
 // ResultCard.jsx — AgriNetwork Bangladesh
 // Individual result card for a farmer, vendor, or market
 
-function ResultCard({ item, isSelected, onClick }) {
+function ResultCard({ item, isSelected, onClick, onChat, onViewDetails }) {
     const {
         type,
         name,
@@ -14,6 +14,16 @@ function ResultCard({ item, isSelected, onClick }) {
         isVerified = true,
         isNew = false,
     } = item;
+
+    const handleChatClick = (e) => {
+        e.stopPropagation();
+        onChat && onChat(item);
+    };
+
+    const handleDetailsClick = (e) => {
+        e.stopPropagation();
+        onViewDetails && onViewDetails(item);
+    };
 
     return (
         <div
@@ -82,8 +92,8 @@ function ResultCard({ item, isSelected, onClick }) {
 
             {isSelected && (
                 <div className="sm-card__action">
-                    <button className="sm-btn sm-btn--primary">View Details</button>
-                    <button className="sm-btn sm-btn--ghost">💬 Chat</button>
+                    <button className="sm-btn sm-btn--primary" onClick={handleDetailsClick}>View Details</button>
+                    <button className="sm-btn sm-btn--ghost" onClick={handleChatClick}>💬 Chat</button>
                 </div>
             )}
         </div>

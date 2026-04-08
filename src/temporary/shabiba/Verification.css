@@ -1,206 +1,228 @@
-/* Verification.css */
-:root {
-    --primary-dark: #344e41;
-    /* Deep Forest */
-    --primary-main: #3a5a40;
-    /* Evergreen */
-    --secondary: #588157;
-    /* Sage Leaf */
-    --accent: #ffe5ec;
-    /* Blush Petal */
-    --neutral-bg: #dad7cd;
-    /* Mist Gray */
-    --white: #ffffff;
-    --text-light: #f8f9fa;
-    --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    --transition: all 0.3s ease;
-}
-.verification-container {
-    background-color: var(--neutral-bg);
+/* Container to fix page size on screen without scrolling */
+.verification-full-screen-container {
     height: 100vh;
     overflow: hidden;
-    padding: 1rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: var(--primary-dark);
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 1rem;
+    background-color: #f1f1f1;
+    /* Standard background color from ss */
 }
-.verification-card {
-    background: var(--white);
+
+.verification-auth-card {
+    background: #ffffff;
+    padding: 2.5rem;
     width: 100%;
-    max-width: 800px;
+    max-width: 500px;
+    /* Exact width from your screenshot */
     border-radius: 20px;
-    box-shadow: var(--shadow);
-    overflow: hidden;
-    animation: slideUp 0.6s ease-out;
-}
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-.verification-header {
-    background-color: var(--primary-dark);
-    padding: 1.5rem 2rem;
-    color: var(--white);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    max-height: 95vh;
+    /* Keep it on one screen */
+    overflow-y: auto;
+    /* Just in case, but structure should fit */
     text-align: center;
 }
-.verification-header h1 {
-    margin: 0;
-    font-size: 1.5rem;
+
+/* Compact typography to ensure no scrolling */
+.compact {
+    margin-top: 0;
+    margin-bottom: 0.25rem;
+}
+
+.auth-title.compact {
+    font-size: 1.8rem;
     font-weight: 700;
-    letter-spacing: -0.5px;
+    margin-bottom: 0.5rem;
 }
-.verification-header p {
-    margin: 0.5rem 0 0;
-    opacity: 0.8;
-    font-size: 1rem;
+
+.auth-subtitle.compact {
+    font-size: 0.95rem;
+    color: #64748b;
+    margin-bottom: 1.5rem;
 }
-.verification-content {
-    padding: 1.5rem 2rem;
-}
-/* Badge Section */
-.badges-container {
+
+.auth-logo.compact {
+    font-size: 1.4rem;
+    gap: 10px;
+    margin-bottom: 0.75rem;
     display: flex;
-    gap: 1rem;
+    align-items: center;
     justify-content: center;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-}
-.badge {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.4rem 1rem;
-    border-radius: 50px;
     font-weight: 600;
-    font-size: 0.9rem;
-    border: 2px solid transparent;
-    transition: var(--transition);
-    cursor: default;
+    color: #344e41;
 }
-.badge-seller {
-    background-color: var(--accent);
-    color: var(--primary-dark);
-    border-color: #f7cad0;
-}
-.badge-vendor {
-    background-color: var(--secondary);
-    color: var(--white);
-}
-.badge:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-/* Form Sections */
-.section-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
+
+/* Flex layout with compact gaps to prevent scrolling */
+.nid-upload-flex-container {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    color: var(--primary-main);
-}
-.section-title::before {
-    content: '';
-    display: block;
-    width: 4px;
-    height: 24px;
-    background-color: var(--secondary);
-    border-radius: 2px;
-}
-.verification-section {
-    margin-bottom: 2rem;
-}
-.upload-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    flex-direction: column;
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-top: 1rem;
 }
-@media (max-width: 600px) {
-    .upload-grid {
-        grid-template-columns: 1fr;
-    }
-}
-.upload-box {
-    border: 2px dashed var(--secondary);
+
+/* Reverting back to the exact frame size from your first code */
+.upload-area.fixed-nid-frame {
+    position: relative;
+    border: 2px dashed #cbd5e1;
     border-radius: 12px;
-    padding: 1rem;
-    text-align: center;
+    background: #f8fafc;
+    /* This height works perfectly with contain to show full NID */
+    height: 150px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     cursor: pointer;
-    transition: var(--transition);
-    background-color: rgba(88, 129, 87, 0.03);
+    overflow: hidden;
+    transition: all 0.2s;
 }
-.upload-box:hover {
-    background-color: var(--accent);
+
+.upload-area:hover {
     border-color: var(--primary-main);
 }
-.upload-icon {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-    color: var(--secondary);
+
+.upload-area.has-image {
+    border: 2px solid var(--primary-main);
 }
-.upload-box p {
-    margin: 0;
-    font-weight: 500;
-    font-size: 0.95rem;
+
+.preview-wrapper {
+    width: 100%;
+    height: 100%;
 }
-.upload-box span {
+
+.preview-img.nid-fit {
+    width: 100%;
+    height: 100%;
+    /* contain: Forces browser to scale image until the entire card fits 
+       inside the frame boundaries, without stretching or cutting. */
+    object-fit: contain;
     display: block;
-    font-size: 0.8rem;
-    color: #666;
-    margin-top: 0.4rem;
 }
-/* Selfie Section */
-.selfie-section-box {
-    background-color: rgba(255, 229, 236, 0.3);
-    padding: 1rem;
-    border-radius: 15px;
-    margin-bottom: 1.5rem;
-    border-left: 5px solid var(--accent);
+
+.remove-btn.compact {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #ef4444;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    z-index: 5;
+    border: none;
 }
-.liveness-note {
-    background-color: var(--primary-dark);
-    color: var(--white);
-    padding: 0.8rem 1.2rem;
-    border-radius: 8px;
+
+.upload-placeholder.compact {
+    text-align: center;
+}
+
+.upload-icon {
+    margin-bottom: 4px;
+    opacity: 0.6;
+    color: #64748b;
+}
+
+.upload-text {
     font-size: 0.85rem;
-    margin-top: 1rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.upload-hint {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    display: block;
+    margin-top: 2px;
+}
+
+/* Red "Not Working" Sign ONLY ON HOVER when Disabled */
+.button-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+/* The standard disabled button (stays green, slightly faded) */
+.primary-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #3a5a40;
+    /* Original green from ss */
+}
+
+/* The red "Not Working" hover effect */
+.disabled-hover-overlay {
+    position: absolute;
+    top: 2rem;
+    /* Matches marginTop of button */
+    left: 0;
+    width: 100%;
+    height: calc(100% - 2rem);
+    /* Matches height of button */
+    background-color: #fee2e2;
+    /* Light red */
+    color: #ef4444;
+    /* Bright red text */
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    /* Matches original button radius */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0;
+    /* Hidden by default */
+    pointer-events: none;
+    /* Let clicks pass through to button */
+    transition: opacity 0.2s;
+    z-index: 10;
+    gap: 8px;
+}
+
+/* Shows red sign on hover only when wrapper is data-disabled */
+.button-wrapper[data-disabled="true"]:hover .disabled-hover-overlay {
+    opacity: 1;
+}
+
+/* Standard Button Styles matching ss */
+.primary-button {
+    height: 48px;
+    border-radius: 8px;
+    background-color: #3a5a40;
+    /* Original green */
+    color: white;
+    border: none;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.primary-button:hover:not(:disabled) {
+    background-color: #344e41;
+    /* Slightly darker green */
+}
+
+.privacy-note.compact {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.error-box.compact {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-}
-.liveness-note svg {
-    flex-shrink: 0;
-}
-/* Button */
-.submit-btn {
-    width: 100%;
-    padding: 0.8rem;
-    background-color: var(--primary-main);
-    color: var(--white);
-    border: none;
-    border-radius: 12px;
-    font-size: 1.1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: var(--transition);
-    box-shadow: 0 4px 15px rgba(58, 90, 64, 0.3);
+    gap: 8px;
+    background: #fee2e2;
+    color: #dc2626;
+    padding: 10px;
+    border-radius: 8px;
     margin-top: 1rem;
-}
-.submit-btn:hover {
-    background-color: var(--primary-dark);
-    transform: scale(1.01);
-    box-shadow: 0 6px 20px rgba(52, 78, 65, 0.4);
-}
-.submit-btn:active {
-    transform: scale(0.99);
+    font-size: 0.85rem;
 }

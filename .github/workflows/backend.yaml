@@ -1,0 +1,128 @@
+name: Deploy AgriNetwork Backend with PM2 (root-owned)
+
+on:
+  push:
+    branches: [ "main" ]  # Trigger on push to the main branch
+    paths:
+      - 'backend/**'      # Only run when files in the backend folder change
+  workflow_dispatch:      # Allows manual triggering
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux]
+
+    env:
+      APP_NAME: agrinetwork-backend
+      NODE_ENV: production
+      APP_PORT: "5000"           # Port for the AgriNetwork service
+      APP_DIR: /app/agrinetwork  # Directory to deploy the app
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Node & npm sanity check
+      - name: Node & npm sanity (system)
+        run: |
+          which node || true
+          node -v || true
+          which npm || true
+          npm -v || true
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          cd backend
+          if [ -s package-lock.json ]; then
+            npm ci
+          else
+            echo "package-lock.json missing or empty; running npm install"
+            npm install
+          fi
+
+      # Step 4: Create .env from GitHub Secrets
+      - name: Create .env
+        run: |
+          echo "MONGO_URI=${{ secrets.MONGO_URI }}" > backend/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> backend/.env
+          echo "GEMINI_MODEL=gemini-flash-latest" >> backend/.env
+          echo "PORT=${{ env.APP_PORT }}" >> backend/.env
+          echo "NODE_ENV=${{ env.NODE_ENV }}" >> backend/.env
+
+      # Step 5: Sync the backend code to the server directory
+      - name: Sync code to /app/agrinetwork (root-owned)
+        run: |
+          sudo mkdir -p "${APP_DIR}"
+          
+          # Create uploads folder and ensure it is not deleted by rsync
+          sudo mkdir -p "${APP_DIR}/public/uploads"
+
+          sudo rsync -a --delete \
+            --exclude ".git" \
+            --exclude "public/uploads/" \
+            ./backend/ "${APP_DIR}/"
+
+          sudo chown -R root:root "${APP_DIR}"
+
+      # Step 6: Ensure PM2 is installed and boot-persistent
+      - name: Ensure PM2 is installed and boot-persistent
+        run: |
+          if ! sudo pm2 -v >/dev/null 2>&1; then
+            sudo npm i -g pm2
+          fi
+          sudo pm2 -v
+          sudo env PATH=$PATH pm2 startup systemd -u root --hp /root || true
+
+      # Step 7: Start/Reload the app with PM2 as root
+      - name: Start/Reload app with PM2 as root
+        run: |
+          # Check for entry file
+          if [ -f "${APP_DIR}/server.js" ]; then
+            ENTRY="server.js"
+          elif [ -f "${APP_DIR}/index.js" ]; then
+            ENTRY="index.js"
+          else
+            echo "No server.js or index.js found in ${APP_DIR}"; exit 1
+          fi
+
+          cd "${APP_DIR}"
+          if sudo pm2 describe "${APP_NAME}" >/dev/null 2>&1; then
+            sudo pm2 restart "${APP_NAME}" --update-env
+          else
+            sudo pm2 start "${ENTRY}" \
+              --name "${APP_NAME}" \
+              --interpreter /usr/bin/node \
+              --time \
+              --update-env
+          fi
+
+          sudo pm2 save
+
+      # Step 8: Show PM2 status
+      - name: Show PM2 status (root)
+        run: sudo pm2 status
+
+      # Step 9: Backend health check
+      - name: Verify backend health
+        run: |
+          ATTEMPTS=30
+          SLEEP_SECONDS=2
+
+          for i in $(seq 1 "${ATTEMPTS}"); do
+            if curl -fsS "http://127.0.0.1:${APP_PORT}/health" >/dev/null; then
+              echo "Health check passed on attempt ${i}/${ATTEMPTS}"
+              exit 0
+            fi
+            echo "Health check failed on attempt ${i}/${ATTEMPTS}; retrying in ${SLEEP_SECONDS}s..."
+            sleep "${SLEEP_SECONDS}"
+          done
+
+          echo "Backend did not become healthy in time. Showing PM2 status and logs:"
+          sudo pm2 status
+          sudo pm2 logs "${APP_NAME}" --lines 100 --nostream || true
+          exit 1

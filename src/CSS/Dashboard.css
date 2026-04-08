@@ -67,6 +67,10 @@
   overflow-x: hidden;
 }
 
+.dashboard-main.dashboard-main--chatbot {
+  overflow: hidden;
+}
+
 .dashboard-header {
   height: 70px;
   background: white;
@@ -142,6 +146,18 @@
 .dashboard-content {
   padding: 2rem;
   animation: fadeIn 0.4s ease-out;
+}
+
+.dashboard-content.dashboard-content--chatbot {
+  padding: 0;
+  height: calc(100vh - 70px);
+  overflow: hidden;
+}
+
+.dashboard-content.dashboard-content--chatbot .chatbot-page-container {
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 @keyframes fadeIn {
@@ -247,5 +263,9 @@
   
   .profile-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-content.dashboard-content--chatbot {
+    height: calc(100vh - 70px);
   }
 }

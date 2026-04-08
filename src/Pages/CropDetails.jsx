@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Tag, Package, AlertCircle, CheckCircle, ArrowLeft, Phone, Calendar } from 'lucide-react';
 import '../CSS/CropMarketplace.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 export default function CropDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -18,7 +20,7 @@ export default function CropDetails() {
         const fetchCrop = async () => {
             setLoading(true);
             try {
-                const res = await fetch(`http://localhost:5001/api/crops/${id}`);
+                const res = await fetch(`${API_BASE_URL}/api/crops/${id}`);
                 if (!res.ok) throw new Error("Failed to load crop details");
                 const data = await res.json();
                 setCrop(data);
@@ -35,7 +37,7 @@ export default function CropDetails() {
         setContactOpen(true);
         setSellerLoading(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/crops/${id}/seller`);
+            const res = await fetch(`${API_BASE_URL}/api/crops/${id}/seller`);
             const data = await res.json();
             setSellerInfo(data);
         } catch {

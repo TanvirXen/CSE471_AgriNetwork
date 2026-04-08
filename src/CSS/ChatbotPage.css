@@ -1,7 +1,7 @@
 .chatbot-page-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 120px);
+  height: 100vh;
   background: white;
   border-radius: 20px;
   box-shadow: var(--shadow-md);
@@ -141,7 +141,7 @@
 
 @media (max-width: 768px) {
   .chatbot-page-container {
-    height: calc(100vh - 150px);
+    height: 100vh;
   }
   .message-bubble {
     max-width: 90%;

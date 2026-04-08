@@ -1,52 +1,76 @@
 import React from 'react';
 
-const CategorySidebar = ({ activeCategory, setActiveCategory }) => {
+const CategorySidebar = ({ activeCategory, setActiveCategory, activeSegment, setActiveSegment }) => {
     const categories = [
-        { id: 'all', name: 'All Products', icon: '🛒' },
-        { id: 'crops', name: 'Crops', icon: '🌾' },
-        { id: 'fish', name: 'Fish', icon: '🐟' },
-        { id: 'poultry', name: 'Poultry', icon: '🐔' },
-        { id: 'livestock', name: 'Livestock', icon: '🐄' },
+        { id: 'all', name: 'All Products' },
+        { id: 'crops', name: 'Crops' },
+        { id: 'fish', name: 'Fish' },
+        { id: 'poultry', name: 'Poultry' },
+        { id: 'livestock', name: 'Livestock' },
     ];
 
-    return (
-        <aside className="marketplace-sidebar">
-            <div className="sidebar-card">
-                <h2 className="sidebar-title">Categories</h2>
-                <ul className="category-list">
-                    {categories.map((cat) => (
-                        <li
-                            key={cat.id}
-                            className={`category-item ${activeCategory === cat.id ? 'active' : ''}`}
-                            onClick={() => setActiveCategory(cat.id)}
-                        >
-                            <span>{cat.icon} {cat.name}</span>
-                            {activeCategory === cat.id && <span className="active-dot">●</span>}
-                        </li>
-                    ))}
-                </ul>
+    const segments = ['Seasonal', 'Bulk', 'Direct Farm', 'Organic'];
 
-                <div className="filter-section" style={{ marginTop: '30px' }}>
-                    <h3 style={{ fontSize: '1rem', marginBottom: '16px' }}>Segments</h3>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                        {['Seasonal', 'Bulk', 'Direct Farm', 'Organic'].map(tag => (
-                            <span key={tag} style={{
-                                padding: '6px 12px',
-                                background: 'var(--neutral-bg)',
-                                borderRadius: '20px',
-                                fontSize: '0.8rem',
-                                cursor: 'pointer',
-                                transition: 'var(--transition)'
+    return (
+        <aside style={{ width: '250px', borderRight: '1px solid #eee', paddingRight: '20px' }}>
+            {/* Categories */}
+            <h3 style={{ marginBottom: '15px' }}>Categories</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {categories.map((cat) => (
+                    <li key={cat.id} style={{ marginBottom: '10px' }}>
+                        <button 
+                            onClick={() => {
+                                setActiveCategory(cat.id);
+                                setActiveSegment('all'); // Reset segment when changing category
                             }}
-                                onMouseOver={(e) => e.target.style.background = 'var(--secondary)'}
-                                onMouseOut={(e) => e.target.style.background = 'var(--neutral-bg)'}
+                            style={{ 
+                                fontWeight: activeCategory === cat.id ? 'bold' : 'normal',
+                                color: activeCategory === cat.id ? '#3a5a40' : '#333',
+                                background: 'none', 
+                                border: 'none', 
+                                cursor: 'pointer', 
+                                padding: '8px 12px',
+                                textAlign: 'left',
+                                width: '100%',
+                                borderRadius: '4px',
+                                backgroundColor: activeCategory === cat.id ? '#f0f5f1' : 'transparent'
+                            }}
+                        >
+                            {cat.name}
+                        </button>
+                    </li>
+                ))}
+            </ul>
+
+            {/* Segments */}
+            <h3 style={{ marginTop: '30px', marginBottom: '15px' }}>Segments</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {segments.map((seg) => {
+                    const segLower = seg.toLowerCase();
+                    const isActive = activeSegment === segLower;
+                    return (
+                        <li key={seg} style={{ marginBottom: '10px' }}>
+                            <button 
+                                onClick={() => setActiveSegment(isActive ? 'all' : segLower)}
+                                style={{ 
+                                    fontWeight: isActive ? 'bold' : 'normal',
+                                    color: isActive ? '#3a5a40' : '#555',
+                                    background: 'none', 
+                                    border: 'none', 
+                                    cursor: 'pointer', 
+                                    padding: '8px 12px',
+                                    textAlign: 'left',
+                                    width: '100%',
+                                    borderRadius: '4px',
+                                    backgroundColor: isActive ? '#f0f5f1' : 'transparent'
+                                }}
                             >
-                                {tag}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-            </div>
+                                {seg}
+                            </button>
+                        </li>
+                    );
+                })}
+            </ul>
         </aside>
     );
 };

@@ -10,6 +10,8 @@ const FILTER_OPTIONS = {
     sackType: ['All', 'Jute (50kg)', 'Plastic (25kg)', 'Woven Sack (50kg)', 'Bales (180kg)']
 };
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 const CropMarketplace = () => {
     const navigate = useNavigate();
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -47,8 +49,8 @@ const CropMarketplace = () => {
 
                 const queryString = params.toString();
                 const url = queryString
-                    ? `http://localhost:5001/api/crops/filter?${queryString}`
-                    : `http://localhost:5001/api/crops/filter`;
+                    ? `${API_BASE_URL}/api/crops/filter?${queryString}`
+                    : `${API_BASE_URL}/api/crops/filter`;
 
                 const response = await fetch(url);
                 if (!response.ok) throw new Error('Failed to load crops');
@@ -101,7 +103,7 @@ const CropMarketplace = () => {
         setSellerLoading(true);
         setSellerInfo(null);
         try {
-            const res = await fetch(`http://localhost:5001/api/crops/${id}/seller`);
+            const res = await fetch(`${API_BASE_URL}/api/crops/${id}/seller`);
             const data = await res.json();
             setSellerInfo(data);
         } catch {
@@ -120,7 +122,7 @@ const CropMarketplace = () => {
         setCalendarMonth(month);
         setCalendarLoading(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/crops/harvest?month=${month}`);
+            const res = await fetch(`${API_BASE_URL}/api/crops/harvest?month=${month}`);
             const data = await res.json();
             setCalendarData(data);
         } catch (err) {

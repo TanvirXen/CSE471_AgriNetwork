@@ -68,6 +68,65 @@ function MessageBubble({ message, onAcceptOffer, onRejectOffer, onCounterOffer }
         );
     }
 
+    // Multimedia: Image
+    if (type === "image") {
+        return (
+            <div className={`cn-msg-row ${isSent ? "sent" : "received"}`}>
+                {!isSent && <div className="cn-msg-avatar">{senderInitials}</div>}
+                <div className="cn-msg-stack">
+                    <div className="cn-msg-media cn-msg-media--image">
+                        <img src={`${import.meta.env.VITE_API_URL || ""}${message.mediaUrl}`} alt="Sent media" />
+                    </div>
+                    <div className="cn-msg-timestamp">
+                        {timestamp}
+                        {isSent && <span>✓✓</span>}
+                    </div>
+                </div>
+                {isSent && <div className="cn-msg-avatar" style={{ background: "linear-gradient(135deg, #344e41, #3a5a40)" }}>You</div>}
+            </div>
+        );
+    }
+
+    // Multimedia: Audio
+    if (type === "audio") {
+        return (
+            <div className={`cn-msg-row ${isSent ? "sent" : "received"}`}>
+                {!isSent && <div className="cn-msg-avatar">{senderInitials}</div>}
+                <div className="cn-msg-stack">
+                    <div className="cn-msg-media cn-msg-media--audio">
+                        <audio controls src={`${import.meta.env.VITE_API_URL || ""}${message.mediaUrl}`} />
+                    </div>
+                    <div className="cn-msg-timestamp">
+                        {timestamp}
+                        {isSent && <span>✓✓</span>}
+                    </div>
+                </div>
+                {isSent && <div className="cn-msg-avatar" style={{ background: "linear-gradient(135deg, #344e41, #3a5a40)" }}>You</div>}
+            </div>
+        );
+    }
+
+    // Multimedia: File
+    if (type === "file") {
+        return (
+            <div className={`cn-msg-row ${isSent ? "sent" : "received"}`}>
+                {!isSent && <div className="cn-msg-avatar">{senderInitials}</div>}
+                <div className="cn-msg-stack">
+                    <div className="cn-msg-bubble cn-msg-bubble--file">
+                        <a href={`${import.meta.env.VITE_API_URL || ""}${message.mediaUrl}`} target="_blank" rel="noopener noreferrer">
+                            📄 Download Document
+                        </a>
+                    </div>
+                    <div className="cn-msg-timestamp">
+                        {timestamp}
+                        {isSent && <span>✓✓</span>}
+                    </div>
+                </div>
+                {isSent && <div className="cn-msg-avatar" style={{ background: "linear-gradient(135deg, #344e41, #3a5a40)" }}>You</div>}
+            </div>
+        );
+    }
+
     // Plain text message
     return (
         <div className={`cn-msg-row ${isSent ? "sent" : "received"}`}>

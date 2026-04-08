@@ -1,6 +1,23 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
+const ROLE_CANONICAL_MAP = {
+  customer: "Customer",
+  farmer: "Farmer",
+  vendor: "Vendor",
+  wholesaler: "Wholesaler",
+  deliverypartner: "DeliveryPartner",
+  delivery_partner: "DeliveryPartner",
+  admin: "Admin",
+  moderator: "Moderator",
+};
+
+const normalizeRole = (role) => {
+  if (typeof role !== "string") return role;
+  const normalizedKey = role.trim().toLowerCase().replace(/\s+/g, "");
+  return ROLE_CANONICAL_MAP[normalizedKey] || role;
+};
+
 const AddressSchema = new mongoose.Schema(
   {
     label: {
@@ -75,7 +92,8 @@ const UserSchema = new mongoose.Schema(
     role: {
       type: String,
       required: true,
-      enum: ["Farmer", "Vendor", "Wholesaler", "DeliveryPartner", "Admin", "Moderator"],
+      enum: ["Customer", "Farmer", "Vendor", "Wholesaler", "DeliveryPartner", "Admin", "Moderator"],
+      set: normalizeRole,
       index: true,
     },
 
@@ -136,6 +154,16 @@ const UserSchema = new mongoose.Schema(
 
     lastLoginAt: { type: Date },
     deviceInfo: [{ type: String, trim: true }],
+
+    // NID Verification Fields
+    nidFront: { type: String, default: "" },
+    nidBack: { type: String, default: "" },
+    verificationStatus: {
+      type: String,
+      enum: ["unverified", "pending", "verified", "rejected"],
+      default: "unverified",
+    },
+    isVerified: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

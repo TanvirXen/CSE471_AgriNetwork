@@ -82,8 +82,6 @@ exports.updateProfile = async (req, res) => {
 // @desc    Upload NID for verification
 // @access  Private
 exports.verifyNID = async (req, res) => {
-  const { frontImage, backImage } = req.body;
-
   try {
     let user = await User.findById(req.user.id);
 
@@ -91,15 +89,26 @@ exports.verifyNID = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.profile.nidPhotos = {
-      front: frontImage,
-      back: backImage
-    };
+    if (!req.files || (!req.files.nidFront && !req.files.nidBack)) {
+      return res.status(400).json({ message: "Please upload NID images" });
+    }
+
+    const nidFrontPath = req.files.nidFront ? req.files.nidFront[0].path : user.nidFront;
+    const nidBackPath = req.files.nidBack ? req.files.nidBack[0].path : user.nidBack;
+
+    user.nidFront = nidFrontPath;
+    user.nidBack = nidBackPath;
+    user.verificationStatus = "pending";
     
     user.profile.profileCompletion = 100;
 
     await user.save();
-    res.json({ message: "NID uploaded successfully for verification", profile: user.profile });
+    res.json({ 
+      message: "NID uploaded successfully for verification", 
+      verificationStatus: user.verificationStatus,
+      nidFront: user.nidFront,
+      nidBack: user.nidBack
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
