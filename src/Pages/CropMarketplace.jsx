@@ -52,7 +52,10 @@ const CropMarketplace = () => {
                     ? `${API_BASE_URL}/api/crops/filter?${queryString}`
                     : `${API_BASE_URL}/api/crops/filter`;
 
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    method: "GET",
+                    credentials: "include", // <- add this
+                });
                 if (!response.ok) throw new Error('Failed to load crops');
 
                 const data = await response.json();
@@ -103,7 +106,9 @@ const CropMarketplace = () => {
         setSellerLoading(true);
         setSellerInfo(null);
         try {
-            const res = await fetch(`${API_BASE_URL}/api/crops/${id}/seller`);
+            const res = await fetch(`${API_BASE_URL}/api/crops/${id}/seller`, {
+                credentials: "include", // <- add this
+            });
             const data = await res.json();
             setSellerInfo(data);
         } catch {
@@ -122,7 +127,9 @@ const CropMarketplace = () => {
         setCalendarMonth(month);
         setCalendarLoading(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/api/crops/harvest?month=${month}`);
+            const res = await fetch(`${API_BASE_URL}/api/crops/harvest?month=${month}`, {
+                credentials: "include", // <- add this
+            });
             const data = await res.json();
             setCalendarData(data);
         } catch (err) {

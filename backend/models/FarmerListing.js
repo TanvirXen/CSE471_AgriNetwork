@@ -119,7 +119,7 @@ const FarmerListingSchema = new mongoose.Schema(
     viewCount: { type: Number, default: 0 },
     saveCount: { type: Number, default: 0 },
   },
-  { timestamps: true }
+  { timestamps: true, collection: "CropMarketplace" }
 );
 
 FarmerListingSchema.index({ farmLocation: "2dsphere" });

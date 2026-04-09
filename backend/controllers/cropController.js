@@ -1,10 +1,51 @@
 const FarmerListing = require("../models/FarmerListing");
+const cloudinary = require("cloudinary").v2;
 
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 // CREATE CROP (POST)
 exports.createCrop = async (req, res) => {
   try {
-    const crop = new FarmerListing(req.body);
+    const cropData = req.body;
+    
+    // Parse JSON strings from form-data if present
+    if (typeof cropData.pricing === 'string') {
+        try { cropData.pricing = JSON.parse(cropData.pricing); } catch(e){}
+    }
+    if (typeof cropData.availabilitySchedule === 'string') {
+        try { cropData.availabilitySchedule = JSON.parse(cropData.availabilitySchedule); } catch(e){}
+    }
+
+    if (req.file) {
+      const uploadStream = () => {
+        return new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "CropMarketplace" },
+            (error, result) => {
+              if (result) resolve(result);
+              else reject(error);
+            }
+          );
+          const { Readable } = require('stream');
+          const readable = new Readable();
+          readable._read = () => {};
+          readable.push(req.file.buffer);
+          readable.push(null);
+          readable.pipe(stream);
+        });
+      };
+      
+      const cldRes = await uploadStream();
+      cropData.media = [{ type: "image", url: cldRes.secure_url }];
+    } else if (!cropData.media) {
+      cropData.media = [];
+    }
+
+    const crop = new FarmerListing(cropData);
     const savedCrop = await crop.save();
     res.status(201).json(savedCrop);
   } catch (error) {
@@ -202,10 +243,10 @@ exports.getCropById = async (req, res) => {
   try {
     const crop = await FarmerListing.findByIdAndUpdate(
         req.params.id,
-        { $inc: { viewCount: 1 } },   // 🔥 increment here
+        { $inc: { viewCount: 1 } },   
         { new: true }
       ).populate("sellerId", "fullName phone profile.avatar");
-      
+
     if (!crop) return res.status(404).json({ message: "Crop not found" });
 
     const formattedCrop = {
