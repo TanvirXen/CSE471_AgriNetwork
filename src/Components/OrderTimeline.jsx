@@ -5,6 +5,7 @@ const OrderTimeline = ({ status }) => {
     { label: 'Pending', id: 'Pending' },
     { label: 'Confirmed', id: 'Confirmed' },
     { label: 'Shipped', id: 'Shipped' },
+    { label: 'Out for Delivery', id: 'OutForDelivery' },
     { label: 'Delivered', id: 'Delivered' }
   ];
 
@@ -14,7 +15,8 @@ const OrderTimeline = ({ status }) => {
       case 'Pending': return 0;
       case 'Confirmed': return 1;
       case 'Shipped': return 2;
-      case 'Delivered': return 3;
+      case 'OutForDelivery': return 3;
+      case 'Delivered': return 4;
       case 'Cancelled': return -1;
       default: return 0;
     }
@@ -34,8 +36,9 @@ const OrderTimeline = ({ status }) => {
 
   // Calculate progress bar width
   const progressWidth = currentIndex === 0 ? '0%' : 
-                        currentIndex === 1 ? '33.33%' : 
-                        currentIndex === 2 ? '66.66%' : '100%';
+                        currentIndex === 1 ? '25%' : 
+                        currentIndex === 2 ? '50%' : 
+                        currentIndex === 3 ? '75%' : '100%';
 
   return (
     <div className="timeline-container">

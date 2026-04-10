@@ -20,11 +20,11 @@ const dummyCrops = [
         quantityUnit: "kg",
         pricing: {
             mode: "Fixed",
-            unit: "kg",
-            unitPrice: 65,
+            unit: "sacks",
+            unitPrice: 3250,
+            minimumOrderQty: 10,
             bulkPricingTiers: [
-                { minQty: 1000, pricePerUnit: 60 },
-                { minQty: 3000, pricePerUnit: 58 }
+                { minQty: 50, pricePerUnit: 3000 }
             ]
         },
         visibility: "Boosted",
@@ -50,10 +50,11 @@ const dummyCrops = [
         quantityUnit: "kg",
         pricing: {
             mode: "Fixed",
-            unit: "kg",
-            unitPrice: 90,
+            unit: "sacks",
+            unitPrice: 2250,
+            minimumOrderQty: 20,
             bulkPricingTiers: [
-                { minQty: 500, pricePerUnit: 85 }
+                { minQty: 50, pricePerUnit: 2125 }
             ]
         },
         visibility: "Public",
@@ -79,10 +80,11 @@ const dummyCrops = [
         quantityUnit: "kg",
         pricing: {
             mode: "Fixed",
-            unit: "kg",
-            unitPrice: 50,
+            unit: "bales",
+            unitPrice: 9000,
+            minimumOrderQty: 5,
             bulkPricingTiers: [
-                { minQty: 1800, pricePerUnit: 48 }
+                { minQty: 20, pricePerUnit: 8640 }
             ]
         },
         visibility: "Boosted",
@@ -108,11 +110,11 @@ const dummyCrops = [
         quantityUnit: "kg",
         pricing: {
             mode: "Fixed",
-            unit: "kg",
-            unitPrice: 35,
+            unit: "sacks",
+            unitPrice: 1750,
+            minimumOrderQty: 50,
             bulkPricingTiers: [
-                { minQty: 2000, pricePerUnit: 33 },
-                { minQty: 5000, pricePerUnit: 30 }
+                { minQty: 100, pricePerUnit: 1650 }
             ]
         },
         visibility: "Public",

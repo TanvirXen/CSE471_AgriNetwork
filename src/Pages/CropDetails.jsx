@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Tag, Package, AlertCircle, CheckCircle, ArrowLeft, Phone, Calendar } from 'lucide-react';
+import { MapPin, Tag, Package, AlertCircle, CheckCircle, ArrowLeft, Phone, Calendar, ShoppingCart } from 'lucide-react';
 import '../CSS/CropMarketplace.css';
+import { useCart } from '../context/CartContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export default function CropDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { addToCart, showToast } = useCart();
     const [crop, setCrop] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -91,6 +93,13 @@ export default function CropDetails() {
                             </div>
                         </div>
 
+                        {crop.description && (
+                            <div style={{ marginTop: '2.5rem', backgroundColor: 'var(--neutral-bg)', padding: '1.5rem', borderRadius: '12px' }}>
+                                <h3 style={{ color: 'var(--primary-dark)', marginBottom: '0.75rem', fontSize: '1.2rem', fontWeight: '700' }}>Description</h3>
+                                <p style={{ color: 'var(--secondary)', lineHeight: 1.6, fontSize: '1rem', margin: 0 }}>{crop.description}</p>
+                            </div>
+                        )}
+
                         <hr style={{ borderTop: '2px solid var(--neutral-bg)', margin: '2.5rem 0' }} />
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2.5rem' }}>
@@ -126,14 +135,25 @@ export default function CropDetails() {
                                         <p style={{ color: 'var(--secondary)', margin: 0, fontStyle: 'italic', fontSize: '1.05rem' }}>No bulk pricing tiers currently available.</p>
                                     )}
 
-                                    <button
-                                        onClick={handleContact}
-                                        style={{ width: '100%', padding: '1.2rem', backgroundColor: 'var(--primary-main)', color: 'var(--white)', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '1.2rem', cursor: 'pointer', marginTop: '2.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', transition: 'var(--transition)', boxShadow: 'var(--shadow-sm)' }}
-                                        onMouseOver={e => { e.currentTarget.style.backgroundColor = 'var(--accent-soft)'; e.currentTarget.style.color = 'var(--primary-dark)' }}
-                                        onMouseOut={e => { e.currentTarget.style.backgroundColor = 'var(--primary-main)'; e.currentTarget.style.color = 'var(--white)' }}
-                                    >
-                                        <Phone size={22} /> Contact Seller Now
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem' }}>
+                                        <button
+                                            onClick={() => { addToCart(crop); showToast('Added to cart successfully!'); }}
+                                            style={{ flex: 1, padding: '1.2rem', backgroundColor: '#f59e0b', color: 'var(--white)', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', transition: 'var(--transition)', boxShadow: 'var(--shadow-sm)' }}
+                                            onMouseOver={e => { e.currentTarget.style.backgroundColor = '#d97706'; }}
+                                            onMouseOut={e => { e.currentTarget.style.backgroundColor = '#f59e0b'; }}
+                                        >
+                                            <ShoppingCart size={22} /> Add to Cart
+                                        </button>
+
+                                        <button
+                                            onClick={handleContact}
+                                            style={{ flex: 1, padding: '1.2rem', backgroundColor: 'var(--primary-main)', color: 'var(--white)', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', transition: 'var(--transition)', boxShadow: 'var(--shadow-sm)' }}
+                                            onMouseOver={e => { e.currentTarget.style.backgroundColor = 'var(--accent-soft)'; e.currentTarget.style.color = 'var(--primary-dark)' }}
+                                            onMouseOut={e => { e.currentTarget.style.backgroundColor = 'var(--primary-main)'; e.currentTarget.style.color = 'var(--white)' }}
+                                        >
+                                            <Phone size={22} /> Contact Seller
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div style={{ marginTop: '1.5rem', padding: '1.5rem', backgroundColor: 'var(--white)', border: '1px solid var(--neutral-bg)', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: 'var(--shadow-sm)' }}>

@@ -9,7 +9,7 @@ import ShabibaPage from './temporary/shabiba'
 import SumaiyaPage from './temporary/sumaiya'
 import CropMarketplace from './Pages/CropMarketplace.jsx'
 import CropDetails from './Pages/CropDetails.jsx'
-import OrderHistory from './temporary/sumaiya/OrderHistory.jsx'
+import OrderHistory from './Pages/OrderHistory.jsx'
 import Marketplace from './temporary/shabiba/Marketplace.jsx'
 import Verification from './temporary/shabiba/Verification.jsx'
 import Login from './Pages/Login'
@@ -22,6 +22,7 @@ import DashboardOverview from './Pages/DashboardOverview'
 import DashboardProfile from './Pages/DashboardProfile'
 import ChatbotPage from './Pages/ChatbotPage'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { CartProvider } from './context/CartContext'
 import ProtectedRoute from './Components/ProtectedRoute'
 
 const RootRedirect = () => {
@@ -43,7 +44,8 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <CartProvider>
+          <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
@@ -77,7 +79,8 @@ createRoot(document.getElementById('root')).render(
           </Route>
 
           <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+          </Routes>
+        </CartProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

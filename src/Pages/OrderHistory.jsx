@@ -1,72 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Calendar, Filter, X, Download, Package, FileText, AlertCircle } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import './OrderHistory.css';
-import OrderTimeline from './components/OrderTimeline';
-import CancelRefundModal from './components/CancelRefundModal';
+import { useAuth } from '../context/AuthContext';
+import '../CSS/OrderHistory.css';
+import OrderTimeline from '../Components/OrderTimeline';
+import CancelRefundModal from '../Components/CancelRefundModal';
 
-// Mock Data
-const MOCK_ORDERS = [
-  {
-    id: 'ORD-8921',
-    date: '2026-03-01',
-    status: 'Delivered',
-    total: 1250.00,
-    items: [
-      { name: 'Organic Wheat', quantity: '50 kg', price: 1000.00 },
-      { name: 'Premium Rice', quantity: '10 kg', price: 250.00 }
-    ],
-    invoiceUrl: '#'
-  },
-  {
-    id: 'ORD-8945',
-    date: '2026-03-03',
-    status: 'Shipped',
-    total: 840.00,
-    items: [
-      { name: 'Fresh Tomatoes', quantity: '20 kg', price: 600.00 },
-      { name: 'Onions', quantity: '15 kg', price: 240.00 }
-    ],
-    invoiceUrl: '#'
-  },
-  {
-    id: 'ORD-8960',
-    date: '2026-03-05',
-    status: 'Confirmed',
-    total: 4500.00,
-    items: [
-      { name: 'Basmati Rice Bulk', quantity: '100 kg', price: 4500.00 }
-    ],
-    invoiceUrl: '#'
-  },
-  {
-    id: 'ORD-8972',
-    date: '2026-03-06',
-    status: 'Pending',
-    total: 320.00,
-    items: [
-      { name: 'Farm Fresh Eggs', quantity: '10 Dozen', price: 120.00 },
-      { name: 'Carrots', quantity: '5 kg', price: 200.00 }
-    ],
-    invoiceUrl: '#'
-  },
-  {
-    id: 'ORD-8850',
-    date: '2026-02-15',
-    status: 'Cancelled',
-    total: 1500.00,
-    items: [
-      { name: 'Corn Seeds', quantity: '25 kg', price: 1500.00 }
-    ],
-    invoiceUrl: '#'
-  }
-];
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const STATUS_COLORS = {
   'Pending': 'status-pending',
   'Confirmed': 'status-confirmed',
   'Shipped': 'status-shipped',
+  'OutForDelivery': 'status-shipped',
   'Delivered': 'status-delivered',
   'Cancelled': 'status-cancelled'
 };
@@ -74,7 +21,9 @@ const STATUS_COLORS = {
 const OrderHistory = () => {
   const location = useLocation();
   const isDashboardRoute = location.pathname.startsWith('/dashboard');
-  const [orders, setOrders] = useState(MOCK_ORDERS);
+  const { user } = useAuth();
+  
+  const [orders, setOrders] = useState([]);
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterDate, setFilterDate] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
@@ -83,34 +32,143 @@ const OrderHistory = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
+  useEffect(() => {
+    let intervalId;
+    if (user) {
+      fetchOrders();
+      intervalId = setInterval(fetchOrders, 5000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [user]);
+
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/orders?buyerId=${user?._id || user?.id}`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+         // Sort orders descending by createdAt
+         data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+         setOrders(data);
+         
+         // Auto-sync the currently viewed order so timeline progresses live natively
+         setSelectedOrder(prev => {
+            if (!prev) return null;
+            return data.find(o => o._id === prev._id) || prev;
+         });
+      }
+    } catch (err) {
+      console.error('Failed to load orders:', err);
+    }
+  };
+
   // Filtering Logic
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
       const matchStatus = filterStatus === 'All' || order.status === filterStatus;
-      const matchDate = filterDate === '' || order.date === filterDate;
+      const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+      const matchDate = filterDate === '' || orderDate === filterDate;
       const matchSearch = filterSearch === '' ||
-        order.id.toLowerCase().includes(filterSearch.toLowerCase()) ||
-        order.items.some(item => item.name.toLowerCase().includes(filterSearch.toLowerCase()));
+        (order.orderNumber && order.orderNumber.toLowerCase().includes(filterSearch.toLowerCase())) ||
+        (order.items && order.items.some(item => item.productName && item.productName.toLowerCase().includes(filterSearch.toLowerCase())));
 
       return matchStatus && matchDate && matchSearch;
     });
   }, [orders, filterStatus, filterDate, filterSearch]);
 
-  const handleDownloadInvoice = (e, orderId) => {
+  const generateInvoiceHtml = (order) => `
+      <html><head>
+        <meta charset="UTF-8">
+        <title>Invoice ${order.orderNumber}</title>
+        <style>
+          body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 40px; margin: auto; max-width: 800px; color: #333; line-height: 1.6; }
+          h2 { color: #166534; border-bottom: 2px solid #166534; padding-bottom: 10px; }
+          .meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.95rem; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+          th { background-color: #f3f4f6; color: #374151; }
+          .total { font-size: 1.5rem; font-weight: bold; color: #166534; text-align: right; margin-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <h2>AgriNetwork Official Invoice</h2>
+        <div class="meta">
+          <div><strong>Order Number:</strong> ${order.orderNumber}</div>
+          <div><strong>Placed On:</strong> ${new Date(order.createdAt).toLocaleDateString()}</div>
+        </div>
+        <div><strong>Status:</strong> ${order.status}</div>
+        
+        <table>
+          <tr><th>Product</th><th>Quantity</th><th>Unit Price</th><th>Subtotal</th></tr>
+          ${order.items.map(item => `
+            <tr>
+              <td>${item.productName}</td>
+              <td>${item.quantity} ${item.unit || 'kg'}</td>
+              <td>৳${item.unitPrice.toFixed(2)}</td>
+              <td>৳${item.subtotal.toFixed(2)}</td>
+            </tr>
+          `).join('')}
+        </table>
+        
+        <div style="margin-top: 20px; text-align: right; font-size: 1.1rem; color: #4b5563;">
+          Delivery Fee: ৳${(order.pricing?.deliveryFee || 0).toFixed(2)}<br/>
+          Platform Fee: ৳${(order.pricing?.platformFee || 0).toFixed(2)}
+        </div>
+        
+        <div class="total">Grand Total: ৳${(order.pricing?.grandTotal || 0).toFixed(2)}</div>
+        
+        <div style="margin-top: 60px; text-align: center; color: #9ca3af; font-size: 0.85rem;">
+          Thank you for trusting AgriNetwork!
+        </div>
+      </body></html>
+    `;
+
+  const handleViewInvoice = (e, order) => {
     e.stopPropagation();
-    // Simulate Download
-    setToastMessage(`Downloading invoice for ${orderId}...`);
+    setToastMessage(`Opening invoice for ${order.orderNumber}...`);
+    const invoiceHtml = generateInvoiceHtml(order);
+    const blob = new Blob([invoiceHtml], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  const handleCancelSubmit = (orderId, reason) => {
-    // Update order status purely in UI state
-    setOrders(prev => prev.map(o =>
-      o.id === orderId ? { ...o, status: 'Cancelled' } : o
-    ));
-    setShowCancelModal(false);
-    setSelectedOrder(null);
-    setToastMessage('Cancellation request submitted successfully.');
+  const handleDownloadInvoice = (e, order) => {
+    e.stopPropagation();
+    setToastMessage(`Downloading invoice for ${order.orderNumber}...`);
+    const invoiceHtml = generateInvoiceHtml(order);
+    const blob = new Blob([invoiceHtml], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Invoice_${order.orderNumber}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const handleCancelSubmit = async (orderId, reason) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}/cancel`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason })
+      });
+      if (res.ok) {
+        setOrders(prev => prev.map(o =>
+          o._id === orderId ? { ...o, status: 'Cancelled' } : o
+        ));
+        setShowCancelModal(false);
+        setSelectedOrder(null);
+        setToastMessage('Cancellation request submitted successfully.');
+      } else {
+        setToastMessage('Cancellation failed. Support contacted.');
+      }
+    } catch(err) {
+      console.error(err);
+      setToastMessage('Error communicating with server.');
+    }
     setTimeout(() => setToastMessage(''), 3000);
   };
 
@@ -164,6 +222,7 @@ const OrderHistory = () => {
               <option value="Pending">Pending</option>
               <option value="Confirmed">Confirmed</option>
               <option value="Shipped">Shipped</option>
+              <option value="OutForDelivery">Out for Delivery</option>
               <option value="Delivered">Delivered</option>
               <option value="Cancelled">Cancelled</option>
             </select>
@@ -185,21 +244,21 @@ const OrderHistory = () => {
             {filteredOrders.length > 0 ? (
               filteredOrders.map((order, index) => (
                 <motion.div
-                  key={order.id}
+                  key={order._id}
                   className="order-card"
                   onClick={() => setSelectedOrder(order)}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  transition={{ duration: 0.3, delay: Math.min(index * 0.05, 1) }}
                   whileHover={{ scale: 1.01 }}
                 >
                   <div className="order-header">
                     <div className="order-id-date">
-                      <div className="id">{order.id}</div>
-                      <div className="date">{new Date(order.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                      <div className="id">{order.orderNumber}</div>
+                      <div className="date">{new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
                     </div>
-                    <div className={`status-badge ${STATUS_COLORS[order.status]}`}>
+                    <div className={`status-badge ${STATUS_COLORS[order.status] || 'status-pending'}`}>
                       {order.status}
                     </div>
                   </div>
@@ -209,7 +268,7 @@ const OrderHistory = () => {
                       {order.items.slice(0, 2).map((item, i) => (
                         <div key={i} className="product-item">
                           <Package size={16} className="product-icon" />
-                          <span>{item.name} <span style={{ color: 'var(--text-muted)' }}>x {item.quantity}</span></span>
+                          <span>{item.productName} <span style={{ color: 'var(--text-muted)' }}>x {item.quantity}</span></span>
                         </div>
                       ))}
                       {order.items.length > 2 && (
@@ -219,9 +278,20 @@ const OrderHistory = () => {
                       )}
                     </div>
 
-                    <div className="order-total">
-                      <div className="label">Total Amount</div>
-                      <div className="amount">৳{order.total.toFixed(2)}</div>
+                    <div className="order-total" style={{ borderTop: '1px dashed var(--neutral-bg)', paddingTop: '1rem', marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                         <span>Subtotal</span><span>৳{(order.pricing?.itemsTotal || 0).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                         <span>Delivery Fee</span><span>৳{(order.pricing?.deliveryFee || 0).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                         <span>Platform Fee</span><span>৳{(order.pricing?.platformFee || 0).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', paddingTop: '0.5rem' }}>
+                         <span className="label">Grand Total</span>
+                         <span className="amount" style={{ color: 'var(--primary-main)', fontSize: '1.1rem' }}>৳{(order.pricing?.grandTotal || 0).toFixed(2)}</span>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -272,13 +342,13 @@ const OrderHistory = () => {
 
               <div className="modal-body">
                 <div className="modal-order-summary">
-                  <h3 style={{ margin: 0, color: 'var(--primary-dark)', fontSize: '1.5rem' }}>{selectedOrder.id}</h3>
-                  <div className={`status-badge ${STATUS_COLORS[selectedOrder.status]}`}>
+                  <h3 style={{ margin: 0, color: 'var(--primary-dark)', fontSize: '1.5rem' }}>{selectedOrder.orderNumber}</h3>
+                  <div className={`status-badge ${STATUS_COLORS[selectedOrder.status] || 'status-pending'}`}>
                     {selectedOrder.status}
                   </div>
                 </div>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
-                  Placed on {new Date(selectedOrder.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  Placed on {new Date(selectedOrder.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
                 </p>
 
                 {/* Status Timeline */}
@@ -293,29 +363,34 @@ const OrderHistory = () => {
                       <div className="item-info">
                         <Package size={20} color="var(--primary-main)" />
                         <div>
-                          <div className="item-name">{item.name}</div>
-                          <div className="item-qty">Qty: {item.quantity}</div>
+                          <div className="item-name">{item.productName}</div>
+                          <div className="item-qty">Qty: {item.quantity} {item.unit || 'kg'}</div>
                         </div>
                       </div>
-                      <div className="item-price">৳{item.price.toFixed(2)}</div>
+                      <div className="item-price">৳{(item.subtotal || 0).toFixed(2)}</div>
                     </div>
                   ))}
 
                   <div className="modal-total">
                     <span>Total Cost</span>
-                    <span>৳{selectedOrder.total.toFixed(2)}</span>
+                    <span>৳{(selectedOrder.pricing?.grandTotal || 0).toFixed(2)}</span>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="modal-actions">
-                  {(selectedOrder.status === 'Delivered' || selectedOrder.status === 'Shipped' || selectedOrder.status === 'Confirmed') && (
-                    <button className="btn btn-primary" onClick={(e) => handleDownloadInvoice(e, selectedOrder.id)}>
-                      <Download size={18} /> Download Invoice
-                    </button>
+                <div className="modal-actions" style={{ flexWrap: 'wrap' }}>
+                  {(!['Cancelled', 'Refunded'].includes(selectedOrder.status)) && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="btn" style={{ backgroundColor: '#f3f4f6', color: '#1f2937', border: '1px solid #d1d5db' }} onClick={(e) => handleViewInvoice(e, selectedOrder)}>
+                        <FileText size={18} /> View Invoice
+                      </button>
+                      <button className="btn btn-primary" onClick={(e) => handleDownloadInvoice(e, selectedOrder)}>
+                        <Download size={18} /> Download
+                      </button>
+                    </div>
                   )}
 
-                  {(selectedOrder.status === 'Pending' || selectedOrder.status === 'Confirmed') && (
+                  {['Pending', 'Confirmed', 'Processing'].includes(selectedOrder.status) && (
                     <button
                       className="btn btn-danger"
                       onClick={() => { setSelectedOrder(null); setShowCancelModal(true); }}
@@ -324,9 +399,9 @@ const OrderHistory = () => {
                     </button>
                   )}
 
-                  {selectedOrder.status === 'Cancelled' && (
+                  {['Cancelled', 'Refunded', 'RefundRequested'].includes(selectedOrder.status) && (
                     <div style={{ textAlign: 'center', color: '#dc2626', backgroundColor: '#fef2f2', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-                      This order was cancelled successfully.
+                      This order was cancelled or refunded. Reason: {selectedOrder.cancellationReason || "Customer Requested"}
                     </div>
                   )}
                 </div>
@@ -341,7 +416,7 @@ const OrderHistory = () => {
       <CancelRefundModal
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
-        order={selectedOrder || (showCancelModal ? MOCK_ORDERS.find(o => ['Pending', 'Confirmed'].includes(o.status)) : null)} // Fallback just in case
+        order={selectedOrder || (showCancelModal ? orders.find(o => ['Pending', 'Confirmed'].includes(o.status)) : null)} 
         onSubmit={handleCancelSubmit}
       />
 

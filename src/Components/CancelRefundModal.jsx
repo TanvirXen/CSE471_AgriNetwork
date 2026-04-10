@@ -15,7 +15,7 @@ const CancelRefundModal = ({ isOpen, onClose, order, onSubmit }) => {
     setIsSubmitting(true);
     // Simulate API call
     setTimeout(() => {
-      onSubmit(order.id, reason);
+      onSubmit(order._id || order.id, reason);
       setIsSubmitting(false);
       setReason('');
     }, 1000);
@@ -44,7 +44,7 @@ const CancelRefundModal = ({ isOpen, onClose, order, onSubmit }) => {
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#fef2f2', borderRadius: '8px', color: '#991b1b' }}>
               <AlertCircle size={24} style={{ flexShrink: 0 }} />
               <div>
-                <p style={{ margin: 0, fontWeight: 600, fontSize: '0.875rem' }}>Are you sure you want to cancel order #{order.id}?</p>
+                <p style={{ margin: 0, fontWeight: 600, fontSize: '0.875rem' }}>Are you sure you want to cancel order #{order.orderNumber || order._id}?</p>
                 <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem' }}>This action cannot be undone. If approved, refunds may take 3-5 business days.</p>
               </div>
             </div>

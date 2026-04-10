@@ -1,5 +1,39 @@
 const Order = require("../models/Order");
 
+const simulateOrderProgression = async (orderId) => {
+  const progression = [
+    { status: "Confirmed", note: "Demo: Seller confirmed order", delay: 10000 },
+    { status: "Shipped", note: "Demo: Order dispatched", delay: 10000 },
+    { status: "OutForDelivery", note: "Demo: Out for delivery", delay: 15000 },
+    { status: "Delivered", note: "Demo: Package successfully delivered", delay: 15000 },
+  ];
+
+  for (const step of progression) {
+    await new Promise(resolve => setTimeout(resolve, step.delay));
+    try {
+      const order = await Order.findById(orderId);
+      if (!order || order.status === "Cancelled" || order.status === "Delivered") break;
+
+      const orderStages = ["Pending", "Confirmed", "Shipped", "OutForDelivery", "Delivered"];
+      const currentIdx = orderStages.indexOf(order.status);
+      const stepIdx = orderStages.indexOf(step.status);
+      
+      if (stepIdx > currentIdx) {
+        order.status = step.status;
+        order.timeline.push({ status: step.status, note: step.note, timestamp: new Date() });
+        if (step.status === "Delivered") {
+          order.deliveredAt = new Date();
+          order.completedAt = new Date();
+        }
+        await order.save();
+      }
+    } catch (e) {
+      console.error("Progression simulation error:", e);
+      break;
+    }
+  }
+};
+
 // Create a new order
 exports.createOrder = async (req, res) => {
   try {
@@ -7,6 +41,10 @@ exports.createOrder = async (req, res) => {
     orderData.orderNumber = "ORD-" + Date.now();
 
     const newOrder = await Order.create(orderData);
+
+    // Trigger demo progression loosely bridging node context
+    simulateOrderProgression(newOrder._id).catch(err => console.error(err));
+
     res.status(201).json(newOrder);
   } catch (err) {
     res.status(500).json({ message: err.message });

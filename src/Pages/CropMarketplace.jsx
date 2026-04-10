@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../CSS/CropMarketplace.css';
-import { Filter, Search, Calendar, MapPin, Tag, AlertCircle, CheckCircle, Package, Phone, X } from 'lucide-react';
+import { Filter, Search, Calendar, MapPin, Tag, AlertCircle, CheckCircle, Package, Phone, X, ShoppingCart } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import CartCheckoutModal from '../Components/CartCheckoutModal';
 
 const FILTER_OPTIONS = {
     variety: ['All', 'BRRI Dhan 28', 'Kataribhog', 'BARI Gom 26', 'Tosha Jute'],
@@ -14,6 +16,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const CropMarketplace = () => {
     const navigate = useNavigate();
+    const { cart, addToCart, setIsCartOpen, showToast } = useCart();
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
     const [activeFilters, setActiveFilters] = useState({
         variety: 'All',
@@ -159,6 +162,12 @@ const CropMarketplace = () => {
                 <div className="cm-header-logo" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
                     <MapPin size={24} color="var(--accent-soft)" />
                     AgriNetwork Market
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <button onClick={() => setIsCartOpen(true)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', position: 'relative' }}>
+                       <ShoppingCart size={24} />
+                       {cart.length > 0 && <span style={{ position: 'absolute', top: '-8px', right: '-8px', background: 'var(--accent-soft)', color: 'var(--primary-dark)', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>{cart.length}</span>}
+                    </button>
                 </div>
             </header>
 
@@ -354,15 +363,24 @@ const CropMarketplace = () => {
 
                                                 <div className="cm-card-footer">
                                                     <span className="cm-moisture">Moisture: {crop.moisture}</span>
-                                                    <button
-                                                        className="cm-btn-primary"
-                                                        onClick={(e) => handleContact(e, crop.id)}
-                                                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'background-color 0.2s', backgroundColor: 'var(--primary-main)' }}
-                                                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--secondary)'}
-                                                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-main)'}
-                                                    >
-                                                        <Phone size={16} /> Contact Seller
-                                                    </button>
+                                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                        <button
+                                                            className="cm-btn-primary"
+                                                            onClick={(e) => { e.stopPropagation(); addToCart(crop); showToast('Added to cart successfully!'); }}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#f59e0b', border: 'none' }}
+                                                        >
+                                                            <ShoppingCart size={16} /> Add
+                                                        </button>
+                                                        <button
+                                                            className="cm-btn-primary"
+                                                            onClick={(e) => handleContact(e, crop.id)}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', transition: 'background-color 0.2s', backgroundColor: 'var(--primary-main)' }}
+                                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--secondary)'}
+                                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-main)'}
+                                                        >
+                                                            <Phone size={16} /> Contact
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -445,6 +463,9 @@ const CropMarketplace = () => {
                     </div>
                 </div>
             )}
+
+            {/* Cart Checkout Modal */}
+            <CartCheckoutModal />
 
             {/* Contact Modal */}
             {contactOpen && (

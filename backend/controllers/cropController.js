@@ -156,7 +156,14 @@ exports.getHarvestCalendar = async (req, res) => {
         dates: dates,
         expectedYield: `${c.quantity || 0} ${c.quantityUnit || 'kg'}`,
         region: c.region || "All Regions",
-        status: c.status || "Unknown"
+        status: c.status || "Unknown",
+        price: c.pricing?.unitPrice || 0,
+        unit: c.pricing?.unit || 'kg',
+        minimumOrderQty: c.pricing?.minimumOrderQty || 1,
+        bulkDeals: (c.pricing?.bulkPricingTiers || []).map(t => ({ minQty: t.minQty, price: t.pricePerUnit })),
+        diseaseNotes: c.diseaseNotes || 'None',
+        qualityNotes: c.qualityNotes || 'N/A',
+        moisture: c.moisturePercentage ? `${c.moisturePercentage}%` : 'N/A'
       };
     });
 
@@ -261,6 +268,7 @@ exports.getCropById = async (req, res) => {
       sackType: crop.sackType || 'N/A',
       diseaseNotes: crop.diseaseNotes || 'None reported.',
       qualityNotes: crop.qualityNotes || 'No quality notes provided.',
+      minimumOrderQty: crop.pricing?.minimumOrderQty || 1,
       isSpotlight: crop.visibility === 'Boosted',
       bulkDeals: (crop.pricing?.bulkPricingTiers || []).map(t => ({
         minQty: t.minQty,
