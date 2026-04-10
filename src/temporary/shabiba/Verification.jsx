@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Upload, AlertCircle, Leaf, X } from 'lucide-react';
 import './Verification.css';
@@ -15,8 +14,6 @@ const Verification = () => {
 
     const frontInputRef = useRef(null);
     const backInputRef = useRef(null);
-    const navigate = useNavigate();
-
     const handleFileChange = (e, type) => {
         const file = e.target.files[0];
         if (file) {

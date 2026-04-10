@@ -77,7 +77,7 @@ const CartCheckoutModal = () => {
         setError(errorData.message || "Failed to checkout.");
         setIsSubmitting(false);
       }
-    } catch (err) {
+    } catch (_err) {
       setError("An error occurred during checkout.");
       setIsSubmitting(false);
     }

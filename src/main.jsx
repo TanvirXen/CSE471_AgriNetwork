@@ -25,6 +25,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import ProtectedRoute from './Components/ProtectedRoute'
 
+// eslint-disable-next-line react-refresh/only-export-components
 const RootRedirect = () => {
   const { user, loading } = useAuth()
 

@@ -32,17 +32,6 @@ const OrderHistory = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  useEffect(() => {
-    let intervalId;
-    if (user) {
-      fetchOrders();
-      intervalId = setInterval(fetchOrders, 5000);
-    }
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [user]);
-
   const fetchOrders = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/orders?buyerId=${user?._id || user?.id}`);
@@ -51,7 +40,7 @@ const OrderHistory = () => {
          // Sort orders descending by createdAt
          data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
          setOrders(data);
-         
+
          // Auto-sync the currently viewed order so timeline progresses live natively
          setSelectedOrder(prev => {
             if (!prev) return null;
@@ -62,6 +51,18 @@ const OrderHistory = () => {
       console.error('Failed to load orders:', err);
     }
   };
+
+  useEffect(() => {
+    let intervalId;
+    if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchOrders(); // async — setState calls happen after await, not synchronously
+      intervalId = setInterval(fetchOrders, 5000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filtering Logic
   const filteredOrders = useMemo(() => {

@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import "./SearchMap.css";
 
 import MapView from "./components/MapView";
+import SearchBar from "./components/SearchBar";
 import FilterPanel from "./components/FilterPanel";
 import ResultsList from "./components/ResultsList";
 import DetailModal from "./components/DetailModal";
@@ -88,7 +89,7 @@ function SearchMapPage() {
             try {
                 // Trigger seeding if DB is empty
                 await fetch(`${API_BASE}/api/discovery/seed`);
-            } catch (_) { }
+            } catch (_) { /* seed endpoint is optional — ignore if unavailable */ }
             await fetchListings();
         })();
     }, [fetchListings, query]);
@@ -156,6 +157,7 @@ function SearchMapPage() {
                         <div className="sm-stat-pill">⭐ 4.8 Top Rated</div>
                     </div>
                 </div>
+                <SearchBar onSearch={handleSearch} />
             </header>
 
       {/* Main Body */}

@@ -3,7 +3,8 @@
 
 import { useState, useRef } from "react";
 
-// Static fallback markers used only if no markers prop passed  
+// Static fallback markers used only if no markers prop passed
+// eslint-disable-next-line react-refresh/only-export-components
 export const MAP_MARKERS = [
   { id: 1, type: "farmer", name: "Rahim Uddin", crop: "Rice", price: 55, unit: "৳/kg", district: "Mymensingh", x: 47, y: 28, rating: 4.8, stock: "in-stock", isVerified: true },
   { id: 2, type: "vendor", name: "Dhaka Fresh Ltd.", crop: "Potato, Onion", price: 22, unit: "৳/kg", district: "Dhaka", x: 44, y: 44, rating: 4.5, stock: "in-stock", isVerified: true },

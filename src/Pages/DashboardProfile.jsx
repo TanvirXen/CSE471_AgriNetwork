@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { MapPin, Phone, Mail, Store, Tag, Camera, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -72,7 +71,7 @@ const DashboardProfile = () => {
       } else {
         setMessage({ type: 'error', text: data.message || 'Failed to update profile.' });
       }
-    } catch (err) {
+    } catch (_err) {
       setMessage({ type: 'error', text: 'Connection error. Please try again.' });
     } finally {
       setLoading(false);

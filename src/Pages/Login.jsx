@@ -34,7 +34,7 @@ const Login = () => {
       } else {
         setError(data.message || 'Login failed. Please check your credentials.');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Connection error. Is the server running?');
     } finally {
       setLoading(false);

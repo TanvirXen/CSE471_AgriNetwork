@@ -160,7 +160,7 @@ const Marketplace = () => {
                const res = await fetch(`${API_BASE_URL}/streams`);
                const d = await res.json();
                setStreams(d.data || []);
-            } catch (err) {}
+            } catch (_err) { /* ignore stop-stream errors silently */ }
         }
     };
 
@@ -208,13 +208,13 @@ const Marketplace = () => {
                         // Soft update without jarring the cursor context
                         setActiveStream(data.data);
                     }
-                } catch (error) {
+                } catch (_error) {
                     // Fail silently to avoid interrupting viewing experience during blips
                 }
             }, 3000);
         }
         return () => clearInterval(pollInterval);
-    }, [activeStream?._id, activeStream?.id]);
+    }, [activeStream?._id, activeStream?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Fetch active stream catalogue consistently
     useEffect(() => {
@@ -226,7 +226,7 @@ const Marketplace = () => {
                 // Only filter isLive streams dynamically for the UI 
                 const activeOnes = (streamsData.data || []).filter(s => s.isLive !== false);
                 setStreams(activeOnes);
-            } catch (error) {
+            } catch (_error) {
                 // Fail silently
             }
         };

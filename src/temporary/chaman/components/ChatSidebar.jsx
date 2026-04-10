@@ -82,6 +82,19 @@ function ChatSidebar({ activeId, onSelect, isOpen, extraConversations = [] }) {
                 </div>
             </div>
 
+            {/* Tab Filter */}
+            <div className="cn-sidebar__tabs">
+                {["All", "Farmers", "Vendors"].map((tab) => (
+                    <button
+                        key={tab}
+                        className={`cn-sidebar__tab${activeTab === tab ? " active" : ""}`}
+                        onClick={() => setActiveTab(tab)}
+                    >
+                        {tab}
+                    </button>
+                ))}
+            </div>
+
             {/* Conversation List */}
             <div className="cn-sidebar__list">
                 {loading && !allConvs.length ? (

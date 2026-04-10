@@ -15,7 +15,7 @@ import {
 
 const DashboardOverview = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user: _user } = useAuth(); // reserved for future personalization
 
   const stats = [
     { label: 'Total Earnings', value: '৳45,200', icon: <DollarSign size={24} color="#3a5a40" />, color: '#ffe5ec' },

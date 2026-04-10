@@ -71,7 +71,7 @@ const CompleteProfile = () => {
       } else {
         setError(data.message || 'Failed to save profile.');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Connection error. Is the server running?');
     } finally {
       setLoading(false);
