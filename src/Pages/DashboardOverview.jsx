@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { 
   TrendingUp, 
   Package, 
@@ -14,6 +15,8 @@ import {
 
 const DashboardOverview = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
   const stats = [
     { label: 'Total Earnings', value: '৳45,200', icon: <DollarSign size={24} color="#3a5a40" />, color: '#ffe5ec' },
     { label: 'Active Orders', value: '12', icon: <Package size={24} color="#344e41" />, color: '#dad7cd' },

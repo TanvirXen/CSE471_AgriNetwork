@@ -19,15 +19,34 @@ const MarketStreamSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    isActive: {
+    isLive: {
         type: Boolean,
         default: true
+    },
+    currentBid: {
+        type: Number,
+        default: 0
     },
     hostId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: false
-    }
+    },
+    vendorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
+    },
+    streamUrl: {
+        type: String,
+        required: false,
+        default: 'https://www.youtube.com/embed/dQw4w9WgXcQ' // fallback mock URL
+    },
+    chatMessages: [{
+        user: { type: String, required: true },
+        text: { type: String, required: true },
+        timestamp: { type: Date, default: Date.now }
+    }]
 }, {
     timestamps: true
 });
