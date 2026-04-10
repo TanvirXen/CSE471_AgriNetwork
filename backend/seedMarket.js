@@ -6,34 +6,63 @@ const MarketStream = require("./models/MarketStream");
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/agrinetwork";
 
 const STREAMS_DATA = [
-    { title: "Fresh Hilsha Catch - LIVE", host: "Padma Fisheries", viewers: "850", image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&q=80&w=600", isActive: true },
-    { title: "Organic Mango Farm Tour", host: "Rajshahi Farm", viewers: "1.2k", image: "https://images.unsplash.com/photo-1591073113125-e46713c829ed?auto=format&fit=crop&q=80&w=600", isActive: true }
+    { 
+        _id: "69d90867838e9609a1c45f28",
+        title: "Fresh Hilsa Catch - LIVE", 
+        host: "Padma Fisheries", 
+        viewers: "850", 
+        image: "https://dailyasianage.com/library/1692742982_9.jpg", 
+        isLive: true,
+        streamUrl: "https://www.youtube.com/embed/UhvaWogKQ1A",
+        chatMessages: [
+            { user: "Farmer_Rahim", text: "How much for a 10kg pack?" },
+            { user: "Buyer_Karim", text: "Looks very fresh indeed." },
+            { user: "Padma Fisheries", text: "We just caught these 10 minutes ago! Bidding starts securely!" },
+            { user: "System Bid", text: "৳2,450 from User819" },
+            { user: "FishLover", text: "Wow, the size is impressive." }
+        ]
+    },
+    { 
+        _id: "69d90867838e9609a1c45f2e",
+        title: "Organic Mango Farm Tour", 
+        host: "Rajshahi Farm", 
+        viewers: "1.2k", 
+        image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRxEy62j9RltWBLFNI5zrsrsuwiJUrPhl_6Bw&s", 
+        isLive: true,
+        streamUrl: "https://www.youtube.com/embed/gr0wr4Q8u48",
+        chatMessages: [
+            { user: "FruitLover99", text: "Are these chemically treated?" },
+            { user: "Rajshahi Farm", text: "No, 100% organic and natural! See for yourself!" },
+            { user: "Buyer_Ali", text: "I'd like to order 50kg for my store." },
+            { user: "System Bid", text: "৳4,500 bulk offer from LocalMart" }
+        ]
+    }
 ];
 
 const PRODUCTS_DATA = [
     // FISH
-    { name: "Premium Hilsha Fish", category: "fish", segment: "direct farm", price: 1560, quality: "A", image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&q=80&w=500", isLive: true },
-    { name: "Giant Tiger Prawn", category: "fish", segment: "bulk", price: 1250, quality: "A", image: "https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?auto=format&fit=crop&q=80&w=500", isLive: false },
-    { name: "Native Rui Fish", category: "fish", segment: "seasonal", price: 450, quality: "B", image: "https://upload.wikimedia.org/wikipedia/commons/e/e0/Rohu_at_Giant_Hypermarket_Kota_Damansara_20230203_105829.jpg", isLive: false },
-    { name: "Organic Vetki", category: "fish", segment: "organic", price: 950, quality: "A", image: "https://www.bbassets.com/media/uploads/p/xl/40055148-2_1-fresho-bhetki-fish-fry-cut.jpg", isLive: false },
+    { name: "Ilish", category: "fish", segment: "seasonal", price: 1200, quality: "A", image: "https://dailyasianage.com/library/1692742982_9.jpg", isLive: true },
+    { name: "Rui", category: "fish", segment: "organic", price: 400, quality: "A", image: "https://upload.wikimedia.org/wikipedia/commons/e/e0/Rohu_at_Giant_Hypermarket_Kota_Damansara_20230203_105829.jpg", isLive: false },
+    { name: "Pangas", category: "fish", segment: "bulk", price: 150, quality: "B", image: "https://www.banglakutir.com/app-contents/upload/1/products/1645348712_1_1_1120710182.jpeg", isLive: false },
+    { name: "Boal", category: "fish", segment: "direct farm", price: 600, quality: "A", image: "https://thumbs.dreamstime.com/b/south-asian-boal-fish-wooden-background-36438042.jpg", isLive: false },
 
     // CROPS
-    { name: "Premium Basmati Rice", category: "crops", segment: "organic", price: 185, quality: "A", image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=500", isLive: false },
-    { name: "Ripe Rajshahi Mango", category: "crops", segment: "seasonal", price: 220, quality: "A", image: "https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&q=80&w=500", isLive: true },
-    { name: "Raw Golden Jute", category: "crops", segment: "bulk", price: 3200, quality: "B", image: "https://images.unsplash.com/photo-1598971861713-54ad16a7e72e?auto=format&fit=crop&q=80&w=500", isLive: false },
-    { name: "Fresh Cauliflower", category: "crops", segment: "direct farm", price: 45, quality: "A", image: "https://snaped.fns.usda.gov/sites/default/files/styles/crop_ratio_7_5/public/seasonal-produce/2018-05/cauliflower.jpg.webp?h=c8b8df1c&itok=bkbqZWhp", isLive: false },
+    { name: "Nazirshail Rice", category: "crops", segment: "bulk", price: 80, quality: "A", image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=500", isLive: false },
+    { name: "Deshi Mosur Dal", category: "crops", segment: "organic", price: 120, quality: "A", image: "https://lalchal.com/wp-content/uploads/2023/04/mosur-4-scaled.jpg", isLive: false },
+    { name: "Potatoes", category: "crops", segment: "seasonal", price: 25, quality: "B", image: "https://healthyfamilyproject.com/wp-content/uploads/2020/05/Potatoes-background.jpg", isLive: false },
+    { name: "Onion", category: "crops", segment: "direct farm", price: 60, quality: "A", image: "https://plantix.net/en/library/assets/custom/crop-images/onion.jpeg", isLive: false },
 
-    // POULTRY
-    { name: "Free Range Desi Chicken", category: "poultry", segment: "organic", price: 620, quality: "A", image: "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&q=80&w=500", isLive: false },
-    { name: "Farm Fresh Layer Eggs", category: "poultry", segment: "bulk", price: 155, quality: "A", image: "https://riversfamilyfarm.com/wp-content/uploads/2023/12/how-and-when-to-clean-farm-fresh-eggs-feature.jpg", isLive: false },
-    { name: "Native Duck", category: "poultry", segment: "direct farm", price: 890, quality: "A", image: "https://images.unsplash.com/photo-1444212477490-ca407925329e?auto=format&fit=crop&q=80&w=500", isLive: false },
-    { name: "Quail Eggs", category: "poultry", segment: "seasonal", price: 400, quality: "A", image: "https://forgetmenotquailfarm.com/wp-content/uploads/2024/10/how-to-collect-and-store-quail-eggs3.jpg", isLive: false },
+    // FRUITS
+    { name: "Kathal", category: "fruits", segment: "seasonal", price: 150, quality: "A", image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSH6wqFdseamKmmYYfAXgQHiz1AY5UcGiDyWw&s", isLive: false },
+    { name: "Fajli Am", category: "fruits", segment: "direct farm", price: 90, quality: "A", image: "https://ashanursery.com/wp-content/uploads/2025/05/WhatsApp-Image-2025-05-20-at-9.59.19-AM.jpeg", isLive: true },
+    { name: "Litchi", category: "fruits", segment: "bulk", price: 300, quality: "B", image: "https://ssorganiclitchi.in/wp-content/uploads/2025/05/Litchi-1-1.jpg", isLive: false },
+    { name: "Peyara", category: "fruits", segment: "organic", price: 80, quality: "A", image: "https://m.media-amazon.com/images/I/31MzWSj0bML._AC_UF1000,1000_QL80_.jpg", isLive: false },
 
     // LIVESTOCK
-    { name: "Black Bengal Goat", category: "livestock", segment: "organic", price: 18500, quality: "A", image: "https://pranikhamar.in/wp-content/uploads/2020/09/black.jpg", isLive: false },
-    { name: "Holstein Friesian Cow", category: "livestock", segment: "bulk", price: 175000, quality: "A", image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTU2CWWGLfKWcRtx5PDEGm_RcWOnpxG7HoRKA&s", isLive: true },
-    { name: "Native Buffalo Calf", category: "livestock", segment: "direct farm", price: 52000, quality: "B", image: "https://images.unsplash.com/photo-1596733430284-f7437764b1a9?auto=format&fit=crop&q=80&w=500", isLive: false },
-    { name: "Lamb Sheep", category: "livestock", segment: "seasonal", price: 12000, quality: "B", image: "https://images.unsplash.com/photo-1484557985045-edf25e08da73?auto=format&fit=crop&q=80&w=500", isLive: false }
+    { name: "Deshi Murgi", category: "livestock", segment: "direct farm", price: 450, quality: "A", image: "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&q=80&w=500", isLive: false },
+    { name: "Cow", category: "livestock", segment: "bulk", price: 85000, quality: "A", image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTU2CWWGLfKWcRtx5PDEGm_RcWOnpxG7HoRKA&s", isLive: true },
+    { name: "Goat", category: "livestock", segment: "organic", price: 15000, quality: "B", image: "https://pranikhamar.in/wp-content/uploads/2020/09/black.jpg", isLive: false },
+    { name: "Duck", category: "livestock", segment: "seasonal", price: 500, quality: "A", image: "https://nutrenaworld.com/wp-content/uploads/2024/01/poultry_blog_why-keep-ducks_820x525.jpg", isLive: false }
 ];
 
 const seedDatabase = async () => {

@@ -9,7 +9,7 @@ const MarketProductSchema = new mongoose.Schema({
     category: {
         type: String,
         required: true,
-        enum: ['crops', 'fish', 'poultry', 'livestock']
+        enum: ['crops', 'fish', 'poultry', 'livestock', 'fruits']
     },
     segment: {
         type: String,
