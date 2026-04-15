@@ -1,0 +1,42 @@
+/* Minimal CSS for FarmerProductListings if extra styles are needed outside Tailwind */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom Register Button Styles */
+.register-btn {
+  background-color: #166534 !important; /* Bold Success Green */
+  color: #ffffff !important;
+  padding: 0.6rem 2rem !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.register-btn:hover {
+  background-color: #14532d !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.register-btn:active {
+  transform: translateY(0) !important;
+  scale: 0.98 !important;
+}
+
+.register-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}

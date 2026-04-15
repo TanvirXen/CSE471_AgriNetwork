@@ -1,0 +1,32 @@
+/* Custom Post Button Styles (Matching Farmer Dashboard) */
+.post-btn {
+  background-color: #166534 !important; /* Bold Success Green */
+  color: #ffffff !important;
+  padding: 0.6rem 2.5rem !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.post-btn:hover {
+  background-color: #14532d !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.post-btn:active {
+  transform: translateY(0) !important;
+  scale: 0.98 !important;
+}
+
+.post-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}

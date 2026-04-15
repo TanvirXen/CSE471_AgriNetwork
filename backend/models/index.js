@@ -19,4 +19,6 @@ module.exports = {
   ChatbotSession: require("./ChatbotSession"),
   VideoCallSession: require("./VideoCallSession"),
   Counter: require("./Counter"),
+  MarketProduct: require("./MarketProduct"),
+  MarketStream: require("./MarketStream"),
 };

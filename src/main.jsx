@@ -23,6 +23,8 @@ import DashboardProfile from './Pages/DashboardProfile'
 import ChatbotPage from './Pages/ChatbotPage'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './Components/ProtectedRoute'
+import FarmerProductListings from './temporary/shabiba/FarmerProductListings.jsx'
+import VendorBuyRequests from './temporary/shabiba/VendorBuyRequests.jsx'
 
 const RootRedirect = () => {
   const { user, loading } = useAuth()
@@ -70,6 +72,8 @@ createRoot(document.getElementById('root')).render(
               <Route path="profile" element={<DashboardProfile />} />
               <Route path="chatbot" element={<ChatbotPage />} />
               <Route path="orders" element={<OrderHistory />} />
+              <Route path="listings" element={<FarmerProductListings />} />
+              <Route path="buy-requests" element={<VendorBuyRequests />} />
               <Route path="messages" element={<ChamanPage />} />
               <Route path="map" element={<SearchMapPage />} />
               <Route path="settings" element={<div className="dashboard-content"><h3>Settings Page (Coming Soon)</h3></div>} />
