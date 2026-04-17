@@ -6,6 +6,8 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const discoveryRoutes = require("./routes/discoveryRoutes");
+const escrowRoutes = require("./routes/escrowRoutes");
+const marketRoutes = require("./routes/marketRoutes");
 
 const app = express();
 
@@ -24,6 +26,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/discovery", discoveryRoutes);
+app.use("/api/escrow", escrowRoutes);
+app.use("/api/market", marketRoutes);
 
 module.exports = app;
 
