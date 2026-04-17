@@ -4,6 +4,7 @@ import '../CSS/CropMarketplace.css';
 import { Filter, Search, Calendar, MapPin, Tag, AlertCircle, CheckCircle, Package, Phone, X, ShoppingCart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import CartCheckoutModal from '../Components/CartCheckoutModal';
+import { Star, ShieldCheck } from 'lucide-react';
 
 const FILTER_OPTIONS = {
     variety: ['All', 'BRRI Dhan 28', 'Kataribhog', 'BARI Gom 26', 'Tosha Jute'],
@@ -82,6 +83,9 @@ const CropMarketplace = () => {
                         minQty: t.minQty,
                         price: t.pricePerUnit
                     })),
+                    averageRating: typeof doc.averageRating === 'number' ? doc.averageRating : 0,
+                    trustScore: typeof doc.trustScore === 'number' ? doc.trustScore : 0,
+                    totalReviews: typeof doc.totalReviews === 'number' ? doc.totalReviews : 0,
                     harvestDate: 'N/A',
                     image: doc.media?.length > 0 ? doc.media[0].url : 'https://placehold.co/400x300?text=No+Image'
 
@@ -333,10 +337,19 @@ const CropMarketplace = () => {
                                                     <span className="cm-card-price">৳{crop.price}<small>/{crop.unit}</small></span>
                                                 </div>
 
-                                                <div className="cm-card-meta">
+                                                <div className="cm-card-meta" style={{ marginBottom: '0.5rem' }}>
                                                     <span><Tag size={14} /> {crop.variety}</span>
                                                     <span><MapPin size={14} /> {crop.region}</span>
                                                     <span><Package size={14} /> {crop.sackType}</span>
+                                                </div>
+
+                                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#eab308', fontWeight: 'bold' }}>
+                                                        <Star size={14} fill="#eab308" /> {crop.averageRating.toFixed(1)} ({crop.totalReviews})
+                                                    </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#10b981', fontWeight: 'bold' }}>
+                                                        <ShieldCheck size={14} /> Trust: {Math.round(crop.trustScore)}
+                                                    </div>
                                                 </div>
 
                                                 {/* Bulk Deals Tier */}

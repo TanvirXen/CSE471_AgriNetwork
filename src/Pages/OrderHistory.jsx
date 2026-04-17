@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, Filter, X, Download, Package, FileText, AlertCircle } from 'lucide-react';
+import { Search, Calendar, Filter, X, Download, Package, FileText, AlertCircle, Star } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../CSS/OrderHistory.css';
 import OrderTimeline from '../Components/OrderTimeline';
 import CancelRefundModal from '../Components/CancelRefundModal';
 import DeliveryTrackingMap from '../Components/DeliveryTrackingMap';
+import ReviewModal from '../Components/ReviewModal';
 import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -44,6 +45,9 @@ const OrderHistory = () => {
   const [nearbyRiders, setNearbyRiders] = useState([]);
   const [isLoadingRiders, setIsLoadingRiders] = useState(false);
   const [selectedRiderId, setSelectedRiderId] = useState('');
+
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewOrder, setReviewOrder] = useState(null);
 
   useEffect(() => {
     let intervalId;
@@ -562,6 +566,16 @@ const OrderHistory = () => {
                     </button>
                   )}
 
+                  {selectedOrder.status === 'Delivered' && (!user?.role || user?.role?.toLowerCase() === 'customer') && (
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => { setReviewOrder(selectedOrder); setShowReviewModal(true); }}
+                      style={{ backgroundColor: '#f59e0b', borderColor: '#f59e0b' }}
+                    >
+                      <Star size={18} /> Rate & Review Vendor
+                    </button>
+                  )}
+
                   {['Cancelled', 'Refunded', 'RefundRequested'].includes(selectedOrder.status) && (
                     <div style={{ textAlign: 'center', color: '#dc2626', backgroundColor: '#fef2f2', padding: '1rem', borderRadius: '8px', marginTop: '1rem', width: '100%' }}>
                       This order was cancelled or refunded. Reason: {selectedOrder.cancellationReason || "Customer Requested"}
@@ -737,6 +751,16 @@ const OrderHistory = () => {
           </div>
         )}
       </AnimatePresence>
+
+      <ReviewModal 
+         isOpen={showReviewModal}
+         onClose={() => setShowReviewModal(false)}
+         order={reviewOrder}
+         onReviewSubmitted={() => {
+           setToastMessage('Thank you! Your verified review has been published.');
+           setTimeout(() => setToastMessage(''), 3000);
+         }}
+      />
 
       {/* Toast Notification */}
       <AnimatePresence>

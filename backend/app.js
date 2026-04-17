@@ -49,6 +49,8 @@ app.use("/api/crops", cropRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/delivery", messageUploadMiddleware, deliveryRoutes);
 app.use("/api/riders", riderRoutes);
+app.use("/api/reviews", require("./routes/reviewRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
 
 
 module.exports = app;

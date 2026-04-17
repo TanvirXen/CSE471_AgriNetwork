@@ -119,6 +119,10 @@ const FarmerListingSchema = new mongoose.Schema(
 
     viewCount: { type: Number, default: 0 },
     saveCount: { type: Number, default: 0 },
+
+    averageRating: { type: Number, default: 0 },
+    totalReviews: { type: Number, default: 0 },
+    trustScore: { type: Number, default: 0 },
   },
   { timestamps: true, collection: "CropMarketplace" }
 );

@@ -22,6 +22,7 @@ import DashboardOverview from './Pages/DashboardOverview'
 import DashboardProfile from './Pages/DashboardProfile'
 import ChatbotPage from './Pages/ChatbotPage'
 import VendorDelivery from './Pages/VendorDelivery'
+import AiAdminReviews from './Pages/AiAdminReviews'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import ProtectedRoute from './Components/ProtectedRoute'
@@ -78,6 +79,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="map" element={<SearchMapPage />} />
               <Route path="settings" element={<div className="dashboard-content"><h3>Settings Page (Coming Soon)</h3></div>} />
             </Route>
+            <Route path="/aiadmin/reviews" element={<AiAdminReviews />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/login" replace />} />

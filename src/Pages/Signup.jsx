@@ -188,6 +188,15 @@ const Signup = () => {
                   <div className="role-name">Vendor</div>
                   <p style={{ fontSize: '0.75rem', color: '#666', textAlign: 'center' }}>I want to sell my agri-products</p>
                 </div>
+                
+                <div 
+                  className={`role-card ${role === 'admin' ? 'active' : ''}`}
+                  onClick={() => setRole('admin')}
+                >
+                  <div className="role-icon"><UserIcon size={32} /></div>
+                  <div className="role-name">AI Admin</div>
+                  <p style={{ fontSize: '0.75rem', color: '#666', textAlign: 'center' }}>System Management & Moderation</p>
+                </div>
               </div>
               
               <div style={{ display: 'flex', gap: '12px' }}>
