@@ -21,6 +21,7 @@ import DashboardLayout from './Components/DashboardLayout'
 import DashboardOverview from './Pages/DashboardOverview'
 import DashboardProfile from './Pages/DashboardProfile'
 import ChatbotPage from './Pages/ChatbotPage'
+import VendorDelivery from './Pages/VendorDelivery'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import ProtectedRoute from './Components/ProtectedRoute'
@@ -72,6 +73,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="profile" element={<DashboardProfile />} />
               <Route path="chatbot" element={<ChatbotPage />} />
               <Route path="orders" element={<OrderHistory />} />
+              <Route path="delivery-handler/:orderId" element={<VendorDelivery />} />
               <Route path="messages" element={<ChamanPage />} />
               <Route path="map" element={<SearchMapPage />} />
               <Route path="settings" element={<div className="dashboard-content"><h3>Settings Page (Coming Soon)</h3></div>} />

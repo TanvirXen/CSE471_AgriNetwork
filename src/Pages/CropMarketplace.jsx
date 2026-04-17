@@ -75,6 +75,8 @@ const CropMarketplace = () => {
                     sackType: doc.sackType || 'N/A',
                     diseaseNotes: doc.diseaseNotes || 'None reported.',
                     qualityNotes: doc.qualityNotes || 'No quality notes provided.',
+                    vendorId: doc.vendorId || doc.sellerId,
+                    sellerId: doc.sellerId || doc.vendorId,
                     isSpotlight: true,
                     bulkDeals: (doc.pricing?.bulkPricingTiers || []).map(t => ({
                         minQty: t.minQty,

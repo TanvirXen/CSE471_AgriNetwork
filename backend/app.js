@@ -11,6 +11,8 @@ const chatbotRoutes = require("./routes/chatbotRoutes");
 
 const cropRoutes = require("./routes/cropRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const deliveryRoutes = require("./routes/deliveryRoutes");
+const riderRoutes = require("./routes/riderRoutes");
 
 const app = express();
 const messageUploadMiddleware = fileUpload({
@@ -45,6 +47,9 @@ app.use("/api/discovery", discoveryRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/crops", cropRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/delivery", messageUploadMiddleware, deliveryRoutes);
+app.use("/api/riders", riderRoutes);
+
 
 module.exports = app;
 

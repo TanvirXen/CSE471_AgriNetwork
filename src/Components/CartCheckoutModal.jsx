@@ -1,9 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, ShoppingCart, CreditCard } from 'lucide-react';
+import { X, Trash2, ShoppingCart, CreditCard, MapPin } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+const LocationMarker = ({ position, setPosition }) => {
+  useMapEvents({
+    click(e) {
+      setPosition([e.latlng.lng, e.latlng.lat]);
+    },
+  });
+  return position ? <Marker position={[position[1], position[0]]} /> : null;
+};
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -14,11 +33,50 @@ const CartCheckoutModal = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  const [pickupDate, setPickupDate] = useState('');
+  const [pickupTimeSlot, setPickupTimeSlot] = useState('Morning');
+  const [deliveryQuote, setDeliveryQuote] = useState({ fee: 150, distanceKm: 0, durationMinutes: 0 });
+  const [isLoadingQuote, setIsLoadingQuote] = useState(false);
+  
+  const [selectedCoordinates, setSelectedCoordinates] = useState(null); // [lng, lat]
+  const [addressText, setAddressText] = useState('');
+
+  useEffect(() => {
+    if (isCartOpen && cart.length > 0 && selectedCoordinates) {
+      const fetchQuote = async () => {
+        setIsLoadingQuote(true);
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/delivery/quote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              vendorId: cart[0].sellerId || cart[0].vendorId,
+              pickupCoords: [90.4125, 23.8103],
+              dropCoords: selectedCoordinates
+            })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setDeliveryQuote({
+              fee: data.deliveryFee,
+              distanceKm: data.distanceKm,
+              durationMinutes: data.durationMinutes,
+              geometry: data.geometry
+            });
+          }
+        } catch (err) {
+          console.error("Failed to quote delivery fee", err);
+        }
+        setIsLoadingQuote(false);
+      };
+      fetchQuote();
+    }
+  }, [isCartOpen, cart, selectedCoordinates]);
+
   if (!isCartOpen) return null;
 
-  const deliveryFee = 150;
   const platformFee = cartTotal * 0.05;
-  const grandTotal = cartTotal + deliveryFee + platformFee;
+  const grandTotal = cartTotal + deliveryQuote.fee + platformFee;
 
   const handleCheckout = async () => {
     if (!user) {
@@ -27,13 +85,18 @@ const CartCheckoutModal = () => {
     }
 
     if (cart.length === 0) return;
+    
+    if (!selectedCoordinates || selectedCoordinates[0] === 0) {
+      setError("Please select your delivery location on the map.");
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
 
     const orderPayload = {
       buyerId: user._id || user.id,
-      sellerId: cart[0].sellerId || user._id, // fallback logic
+      sellerId: cart[0].sellerId || cart[0].vendorId || user._id, 
       items: cart.map(c => ({
         listingId: c.id,
         productName: c.name,
@@ -43,19 +106,22 @@ const CartCheckoutModal = () => {
       })),
       pricing: {
         itemsTotal: cartTotal,
-        deliveryFee,
+        deliveryFee: deliveryQuote.fee,
         platformFee,
         escrowFee: 0,
         discount: 0,
         grandTotal
       },
+      pickupDate: pickupDate || new Date().toISOString(),
+      pickupTimeSlot,
+      routePolyline: deliveryQuote.geometry ? JSON.stringify(deliveryQuote.geometry) : null,
       deliveryAddress: {
-        contactName: user.name || "AgriNetwork User",
+        contactName: user.fullName || "AgriNetwork User",
         phone: user.phone || "01700000000",
-        fullAddress: "Default Delivery Address",
+        addressText: addressText || "Selected Map Location",
         district: "Dhaka",
         division: "Dhaka",
-        coordinates: { type: "Point", coordinates: [90.41, 23.81] }
+        coordinates: { type: "Point", coordinates: selectedCoordinates }
       },
       status: "Pending",
       timeline: [{ status: "Pending", note: "Order placed securely via Marketplace." }]
@@ -132,17 +198,60 @@ const CartCheckoutModal = () => {
                    ))}
                 </div>
              )}
+             
+             {cart.length > 0 && (
+               <div style={{ marginTop: '2rem' }}>
+                 <h3 style={{ fontSize: '1.1rem', color: 'var(--primary-dark)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={18}/> Delivery Details</h3>
+                 <input 
+                   type="text" 
+                   placeholder="Enter full building address locally (e.g. House 4, Road 2)"
+                   value={addressText}
+                   onChange={(e) => setAddressText(e.target.value)}
+                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ccc', marginBottom: '1rem' }}
+                 />
+                 <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>Select exact location on the map to calculate precise routing:</p>
+                 <div style={{ height: '250px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ccc' }}>
+                   <MapContainer center={[23.8103, 90.4125]} zoom={12} style={{ height: '100%', width: '100%' }}>
+                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                     <LocationMarker position={selectedCoordinates} setPosition={setSelectedCoordinates} />
+                   </MapContainer>
+                 </div>
+               </div>
+             )}
           </div>
 
           {cart.length > 0 && (
              <div style={{ padding: '1.5rem', backgroundColor: '#f9fafb', borderTop: '1px solid #eee', borderRadius: '0 0 12px 12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: '#4b5563' }}>
+                   <span>Pickup Schedule</span>
+                   <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input 
+                        type="date" 
+                        value={pickupDate} 
+                        onChange={e => setPickupDate(e.target.value)} 
+                        style={{ padding: '0.25rem', borderRadius: '4px', border: '1px solid #ccc' }}
+                      />
+                      <select 
+                        value={pickupTimeSlot} 
+                        onChange={e => setPickupTimeSlot(e.target.value)}
+                        style={{ padding: '0.25rem', borderRadius: '4px', border: '1px solid #ccc' }}
+                      >
+                        <option value="Morning">Morning</option>
+                        <option value="Afternoon">Afternoon</option>
+                        <option value="Evening">Evening</option>
+                      </select>
+                   </div>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#4b5563' }}>
                    <span>Subtotal</span>
                    <span>৳{cartTotal.toFixed(2)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#4b5563' }}>
-                   <span>Delivery Fee</span>
-                   <span>৳{deliveryFee.toFixed(2)}</span>
+                   <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                     Delivery Fee 
+                     {isLoadingQuote ? '(Calculating...)' : `(${deliveryQuote.distanceKm.toFixed(1)} km)`}
+                   </span>
+                   <span>৳{deliveryQuote.fee.toFixed(2)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: '#4b5563' }}>
                    <span>Platform Fee (5%)</span>
