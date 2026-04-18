@@ -44,6 +44,36 @@ io.on("connection", (socket) => {
     io.to(data.conversationId).emit("offer_rejected", data);
   });
 
+  socket.on("video_call_invite", (data) => {
+    if (data?.targetUserId) {
+      io.to(data.targetUserId).emit("video_call_invite", data);
+    }
+  });
+
+  socket.on("video_call_answered", (data) => {
+    if (data?.targetUserId) {
+      io.to(data.targetUserId).emit("video_call_answered", data);
+    }
+  });
+
+  socket.on("video_call_declined", (data) => {
+    if (data?.targetUserId) {
+      io.to(data.targetUserId).emit("video_call_declined", data);
+    }
+  });
+
+  socket.on("video_call_ice_candidate", (data) => {
+    if (data?.targetUserId) {
+      io.to(data.targetUserId).emit("video_call_ice_candidate", data);
+    }
+  });
+
+  socket.on("video_call_ended", (data) => {
+    if (data?.targetUserId) {
+      io.to(data.targetUserId).emit("video_call_ended", data);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected");
   });

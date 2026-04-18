@@ -1,6 +1,3 @@
-// ChatHeader.jsx — AgriNetwork Bangladesh
-// Top bar with user info, deal progress, and working action buttons
-
 import { useState } from "react";
 
 const DEAL_STEPS = [
@@ -11,7 +8,6 @@ const DEAL_STEPS = [
   { label: "Confirmed" },
 ];
 
-// ── Profile Drawer ────────────────────────────────────────────────
 function ProfileDrawer({ conversation, onClose }) {
   if (!conversation) return null;
   return (
@@ -76,60 +72,6 @@ function ProfileDrawer({ conversation, onClose }) {
   );
 }
 
-// ── Call Modal ────────────────────────────────────────────────────
-function CallModal({ conversation, onClose }) {
-  const [status, setStatus] = useState("calling"); // calling | connected | ended
-
-  const handleAnswer = () => setStatus("connected");
-  const handleEnd = () => { setStatus("ended"); setTimeout(onClose, 1000); };
-
-  return (
-    <div className="cn-modal-overlay">
-      <div className="cn-modal" style={{ maxWidth: 320, textAlign: "center" }}>
-        <div style={{ padding: "32px 24px" }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: "50%",
-            background: "var(--cn-green)", color: "#fff",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "2rem", fontWeight: 700, margin: "0 auto 16px",
-            boxShadow: status === "calling" ? "0 0 0 10px rgba(74,128,78,0.2)" : "none",
-            animation: status === "calling" ? "pulse 1.5s infinite" : "none",
-          }}>
-            {conversation?.avatar || "??"}
-          </div>
-          <div style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: 4 }}>
-            {conversation?.name}
-          </div>
-          <div style={{ color: "#888", fontSize: "0.85rem", marginBottom: 32 }}>
-            {status === "calling" && "Calling…"}
-            {status === "connected" && "🟢 Connected"}
-            {status === "ended" && "Call ended"}
-          </div>
-          <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
-            {status === "calling" && (
-              <button
-                onClick={handleAnswer}
-                style={{
-                  background: "#10b981", color: "#fff", border: "none",
-                  borderRadius: "50%", width: 56, height: 56, fontSize: "1.4rem", cursor: "pointer",
-                }}
-              >📞</button>
-            )}
-            <button
-              onClick={handleEnd}
-              style={{
-                background: "#ef4444", color: "#fff", border: "none",
-                borderRadius: "50%", width: 56, height: 56, fontSize: "1.4rem", cursor: "pointer",
-              }}
-            >☎️</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── More Options Dropdown ─────────────────────────────────────────
 function MoreMenu({ onClose }) {
   const options = [
     { icon: "📋", label: "View All Offers" },
@@ -163,17 +105,14 @@ function MoreMenu({ onClose }) {
   );
 }
 
-// ── MAIN ChatHeader ───────────────────────────────────────────────
-function ChatHeader({ conversation, activeStep = 2, onToggleSidebar }) {
+function ChatHeader({ conversation, activeStep = 2, onToggleSidebar, onStartVideoCall, videoCallDisabled = false }) {
   const [showProfile, setShowProfile] = useState(false);
-  const [showCall, setShowCall] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
   if (!conversation) return null;
 
   return (
     <>
-      {/* User Info Header */}
       <header className="cn-chat-header">
         <button className="cn-icon-btn cn-mob-toggle" onClick={onToggleSidebar} aria-label="Toggle sidebar">
           ☰
@@ -206,7 +145,6 @@ function ChatHeader({ conversation, activeStep = 2, onToggleSidebar }) {
           </div>
         )}
 
-        {/* Action Buttons */}
         <div className="cn-chat-header__actions" style={{ position: "relative" }}>
           <button
             className="cn-icon-btn"
@@ -216,9 +154,10 @@ function ChatHeader({ conversation, activeStep = 2, onToggleSidebar }) {
 
           <button
             className="cn-icon-btn"
-            title="Voice call"
-            onClick={() => setShowCall(true)}
-          >📞</button>
+            title="Start video call"
+            onClick={onStartVideoCall}
+            disabled={videoCallDisabled}
+          >🎥</button>
 
           <button
             className="cn-icon-btn"
@@ -230,7 +169,6 @@ function ChatHeader({ conversation, activeStep = 2, onToggleSidebar }) {
         </div>
       </header>
 
-      {/* Deal Progress Banner */}
       <div className="cn-deal-banner">
         <span className="cn-deal-banner__label">DEAL PROGRESS</span>
         <div className="cn-deal-steps">
@@ -253,14 +191,8 @@ function ChatHeader({ conversation, activeStep = 2, onToggleSidebar }) {
         </div>
       </div>
 
-      {/* Profile Drawer */}
       {showProfile && (
         <ProfileDrawer conversation={conversation} onClose={() => setShowProfile(false)} />
-      )}
-
-      {/* Call Modal */}
-      {showCall && (
-        <CallModal conversation={conversation} onClose={() => setShowCall(false)} />
       )}
     </>
   );

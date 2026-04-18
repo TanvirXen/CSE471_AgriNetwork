@@ -11,11 +11,13 @@ import ChatSidebar from "./components/ChatSidebar";
 import ChatHeader from "./components/ChatHeader";
 import MessageBubble from "./components/MessageBubble";
 import PriceInputPanel from "./components/PriceInputPanel";
+import VideoCallModal from "./components/VideoCallModal";
 
 import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || "";
+const ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
 
 const getMockLivePrice = (cropName) => {
   if (!cropName) return 58;
@@ -135,8 +137,110 @@ function ChatNegotiationPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [counterFor, setCounterFor] = useState(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [callState, setCallState] = useState({
+    isOpen: false,
+    status: "idle",
+    incoming: false,
+    callId: null,
+    targetUserId: null,
+    conversationId: null,
+    offer: null,
+    fromUser: null,
+  });
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isCameraOff, setIsCameraOff] = useState(false);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
+  const peerConnectionRef = useRef(null);
+  const pendingIceCandidatesRef = useRef([]);
+  const localStreamRef = useRef(null);
+  const remoteStreamRef = useRef(null);
+
+  useEffect(() => {
+    localStreamRef.current = localStream;
+  }, [localStream]);
+
+  useEffect(() => {
+    remoteStreamRef.current = remoteStream;
+  }, [remoteStream]);
+
+  const stopMediaStream = useCallback((stream) => {
+    stream?.getTracks?.().forEach((track) => track.stop());
+  }, []);
+
+  const resetCallResources = useCallback(() => {
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.onicecandidate = null;
+      peerConnectionRef.current.ontrack = null;
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+
+    stopMediaStream(localStreamRef.current);
+    stopMediaStream(remoteStreamRef.current);
+    setLocalStream(null);
+    setRemoteStream(null);
+    setIsMuted(false);
+    setIsCameraOff(false);
+    pendingIceCandidatesRef.current = [];
+  }, [stopMediaStream]);
+
+  const createPeerConnection = useCallback((targetUserId, callId) => {
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+    }
+
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const incomingRemoteStream = new MediaStream();
+    setRemoteStream(incomingRemoteStream);
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate && targetUserId) {
+        socketRef.current?.emit("video_call_ice_candidate", {
+          callId,
+          targetUserId,
+          candidate: event.candidate,
+        });
+      }
+    };
+
+    pc.ontrack = (event) => {
+      event.streams[0]?.getTracks().forEach((track) => incomingRemoteStream.addTrack(track));
+      setCallState((prev) => ({ ...prev, status: "connected" }));
+    };
+
+    peerConnectionRef.current = pc;
+    return pc;
+  }, []);
+
+  const ensureLocalMedia = useCallback(async () => {
+    if (localStreamRef.current) {
+      return localStreamRef.current;
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    setLocalStream(stream);
+    setIsMuted(false);
+    setIsCameraOff(false);
+    return stream;
+  }, []);
+
+  const flushPendingIceCandidates = useCallback(async () => {
+    const pc = peerConnectionRef.current;
+    if (!pc?.remoteDescription) return;
+
+    for (const candidate of pendingIceCandidatesRef.current) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.error("Failed to add queued ICE candidate:", err);
+      }
+    }
+
+    pendingIceCandidatesRef.current = [];
+  }, []);
 
   // Initialize socket
   useEffect(() => {
@@ -226,8 +330,86 @@ function ChatNegotiationPage() {
       console.log("New message notification:", data);
     });
 
+    socketRef.current.on("video_call_invite", (data) => {
+      setCallState({
+        isOpen: true,
+        status: "incoming",
+        incoming: true,
+        callId: data.callId,
+        targetUserId: data.fromUserId,
+        conversationId: data.conversationId,
+        offer: data.offer,
+        fromUser: data.fromUser,
+      });
+    });
+
+    socketRef.current.on("video_call_answered", async (data) => {
+      try {
+        if (!peerConnectionRef.current) return;
+        await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+        await flushPendingIceCandidates();
+        setCallState((prev) => ({ ...prev, status: "connected", incoming: false }));
+      } catch (err) {
+        console.error("Failed to apply remote answer:", err);
+        setCallState((prev) => ({ ...prev, status: "error" }));
+      }
+    });
+
+    socketRef.current.on("video_call_declined", () => {
+      resetCallResources();
+      setCallState({
+        isOpen: true,
+        status: "error",
+        incoming: false,
+        callId: null,
+        targetUserId: null,
+        conversationId: null,
+        offer: null,
+        fromUser: null,
+      });
+      setTimeout(() => {
+        setCallState({
+          isOpen: false,
+          status: "idle",
+          incoming: false,
+          callId: null,
+          targetUserId: null,
+          conversationId: null,
+          offer: null,
+          fromUser: null,
+        });
+      }, 1800);
+    });
+
+    socketRef.current.on("video_call_ice_candidate", async (data) => {
+      try {
+        if (!peerConnectionRef.current?.remoteDescription) {
+          pendingIceCandidatesRef.current.push(data.candidate);
+          return;
+        }
+
+        await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+      } catch (err) {
+        console.error("Failed to add ICE candidate:", err);
+      }
+    });
+
+    socketRef.current.on("video_call_ended", () => {
+      resetCallResources();
+      setCallState({
+        isOpen: false,
+        status: "idle",
+        incoming: false,
+        callId: null,
+        targetUserId: null,
+        conversationId: null,
+        offer: null,
+        fromUser: null,
+      });
+    });
+
     return () => socketRef.current?.disconnect();
-  }, [user, activeConv]);
+  }, [user, activeConv, flushPendingIceCandidates, resetCallResources]);
 
   // Handle incoming chat request from Map
   useEffect(() => {
@@ -273,9 +455,204 @@ function ChatNegotiationPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => () => resetCallResources(), [resetCallResources]);
+
   const senderInitials = user?.fullName
     ? user.fullName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "You";
+
+  const handleStartVideoCall = useCallback(async () => {
+    if (!token || !activeConv?.userId || !user?._id || callState.status === "connecting" || callState.status === "connected" || callState.status === "outgoing") {
+      return;
+    }
+
+    try {
+      const stream = await ensureLocalMedia();
+
+      const res = await fetch(`${API_BASE}/api/messages/calls/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({
+          receiverId: activeConv.userId,
+          conversationId: activeConv.conversationId,
+          purpose: "Negotiation",
+        }),
+      });
+
+      const payload = await res.json();
+      if (!res.ok) {
+        throw new Error(payload.message || "Failed to start video call.");
+      }
+
+      const call = payload.call;
+      const pc = createPeerConnection(activeConv.userId, call.id);
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      setCallState({
+        isOpen: true,
+        status: "outgoing",
+        incoming: false,
+        callId: call.id,
+        targetUserId: activeConv.userId,
+        conversationId: call.conversationId,
+        offer: null,
+        fromUser: null,
+      });
+
+      socketRef.current?.emit("video_call_invite", {
+        callId: call.id,
+        conversationId: call.conversationId,
+        targetUserId: activeConv.userId,
+        fromUserId: user._id,
+        fromUser: {
+          _id: user._id,
+          fullName: user.fullName,
+          avatar: senderInitials,
+        },
+        offer,
+      });
+    } catch (err) {
+      console.error("Failed to start video call:", err);
+      resetCallResources();
+      setCallState({
+        isOpen: true,
+        status: "error",
+        incoming: false,
+        callId: null,
+        targetUserId: activeConv?.userId || null,
+        conversationId: activeConv?.conversationId || null,
+        offer: null,
+        fromUser: null,
+      });
+      setTimeout(() => {
+        setCallState({
+          isOpen: false,
+          status: "idle",
+          incoming: false,
+          callId: null,
+          targetUserId: null,
+          conversationId: null,
+          offer: null,
+          fromUser: null,
+        });
+      }, 1800);
+    }
+  }, [activeConv, callState.status, createPeerConnection, ensureLocalMedia, resetCallResources, senderInitials, token, user]);
+
+  const handleAcceptVideoCall = useCallback(async () => {
+    if (!token || !callState.callId || !callState.offer || !callState.targetUserId) return;
+
+    try {
+      const stream = await ensureLocalMedia();
+
+      const res = await fetch(`${API_BASE}/api/messages/calls/${callState.callId}/answer`, {
+        method: "POST",
+        headers: { "x-auth-token": token },
+      });
+
+      const payload = await res.json();
+      if (!res.ok) {
+        throw new Error(payload.message || "Failed to answer call.");
+      }
+
+      const pc = createPeerConnection(callState.targetUserId, callState.callId);
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+      await pc.setRemoteDescription(new RTCSessionDescription(callState.offer));
+      await flushPendingIceCandidates();
+
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      socketRef.current?.emit("video_call_answered", {
+        callId: callState.callId,
+        targetUserId: callState.targetUserId,
+        answer,
+      });
+
+      setCallState((prev) => ({ ...prev, status: "connecting", incoming: false, offer: null }));
+    } catch (err) {
+      console.error("Failed to accept video call:", err);
+      resetCallResources();
+      setCallState({
+        isOpen: true,
+        status: "error",
+        incoming: false,
+        callId: null,
+        targetUserId: null,
+        conversationId: null,
+        offer: null,
+        fromUser: null,
+      });
+    }
+  }, [callState.callId, callState.offer, callState.targetUserId, createPeerConnection, ensureLocalMedia, flushPendingIceCandidates, resetCallResources, token]);
+
+  const finishCall = useCallback(async (reason = "completed", notifyPeer = true) => {
+    const currentCallId = callState.callId;
+    const targetUserId = callState.targetUserId;
+
+    if (notifyPeer && targetUserId) {
+      const eventName = reason === "declined" ? "video_call_declined" : "video_call_ended";
+      socketRef.current?.emit(eventName, {
+        callId: currentCallId,
+        targetUserId,
+      });
+    }
+
+    if (token && currentCallId) {
+      try {
+        await fetch(`${API_BASE}/api/messages/calls/${currentCallId}/end`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-auth-token": token },
+          body: JSON.stringify({ reason }),
+        });
+      } catch (err) {
+        console.error("Failed to update call status:", err);
+      }
+    }
+
+    resetCallResources();
+    setCallState({
+      isOpen: false,
+      status: "idle",
+      incoming: false,
+      callId: null,
+      targetUserId: null,
+      conversationId: null,
+      offer: null,
+      fromUser: null,
+    });
+  }, [callState.callId, callState.targetUserId, resetCallResources, token]);
+
+  const handleDeclineVideoCall = useCallback(async () => {
+    await finishCall("declined", true);
+  }, [finishCall]);
+
+  const handleEndVideoCall = useCallback(async () => {
+    setCallState((prev) => ({ ...prev, status: "ending" }));
+    await finishCall("completed", true);
+  }, [finishCall]);
+
+  const handleToggleMute = useCallback(() => {
+    if (!localStream) return;
+    const nextMuted = !isMuted;
+    localStream.getAudioTracks().forEach((track) => {
+      track.enabled = !nextMuted;
+    });
+    setIsMuted(nextMuted);
+  }, [isMuted, localStream]);
+
+  const handleToggleCamera = useCallback(() => {
+    if (!localStream) return;
+    const nextCameraOff = !isCameraOff;
+    localStream.getVideoTracks().forEach((track) => {
+      track.enabled = !nextCameraOff;
+    });
+    setIsCameraOff(nextCameraOff);
+  }, [isCameraOff, localStream]);
 
   // Load messages from backend when switching convos
   const loadBackendMessages = useCallback(async (convId) => {
@@ -628,6 +1005,8 @@ function ChatNegotiationPage() {
                 conversation={activeConv}
                 activeStep={2}
                 onToggleSidebar={() => setSidebarOpen((v) => !v)}
+                onStartVideoCall={handleStartVideoCall}
+                videoCallDisabled={!activeConv?.userId || callState.isOpen}
               />
 
               <div className="cn-messages" role="log" aria-live="polite">
@@ -684,6 +1063,27 @@ function ChatNegotiationPage() {
           onSubmit={handleModalSubmit}
         />
       )}
+
+      <VideoCallModal
+        isOpen={callState.isOpen}
+        status={callState.status}
+        incoming={callState.incoming}
+        conversation={callState.incoming
+          ? {
+              name: callState.fromUser?.fullName,
+              avatar: callState.fromUser?.avatar || callState.fromUser?.fullName?.slice(0, 2).toUpperCase(),
+            }
+          : activeConv}
+        localStream={localStream}
+        remoteStream={remoteStream}
+        isMuted={isMuted}
+        isCameraOff={isCameraOff}
+        onAccept={handleAcceptVideoCall}
+        onDecline={handleDeclineVideoCall}
+        onEnd={handleEndVideoCall}
+        onToggleMute={handleToggleMute}
+        onToggleCamera={handleToggleCamera}
+      />
     </div>
   );
 }
