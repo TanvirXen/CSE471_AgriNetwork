@@ -293,8 +293,14 @@ function ChatNegotiationPage() {
   );
 
   const sendRoomOffer = useCallback(async (roomId) => {
-    const pc = peerConnectionRef.current;
-    if (!pc || pc.localDescription || pc.remoteDescription) return;
+    const stream = localStreamRef.current || (await ensureLocalMedia());
+    const pc = peerConnectionRef.current || createPeerConnection(roomId);
+
+    if (!pc.getSenders().length) {
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+    }
+
+    if (pc.localDescription || pc.remoteDescription) return;
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
@@ -307,7 +313,7 @@ function ChatNegotiationPage() {
     setCallState((prev) =>
       prev.roomId === roomId ? { ...prev, status: "connecting" } : prev
     );
-  }, []);
+  }, [createPeerConnection, ensureLocalMedia]);
 
   // Initialize socket
   useEffect(() => {
@@ -562,7 +568,7 @@ function ChatNegotiationPage() {
     }
 
     try {
-      const stream = await ensureLocalMedia();
+      await ensureLocalMedia();
 
       const res = await fetch(`${API_BASE}/api/messages/calls/start`, {
         method: "POST",
@@ -580,10 +586,6 @@ function ChatNegotiationPage() {
       }
 
       const call = payload.call;
-      const pc = createPeerConnection(call.roomId);
-      if (!pc.getSenders().length) {
-        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-      }
 
       setCallState({
         isOpen: true,
@@ -627,7 +629,7 @@ function ChatNegotiationPage() {
         });
       }, 1800);
     }
-  }, [activeConv, callState.isOpen, callState.status, createPeerConnection, ensureLocalMedia, joinCallRoom, resetCallResources, token, user]);
+  }, [activeConv, callState.isOpen, callState.status, ensureLocalMedia, joinCallRoom, resetCallResources, token, user]);
 
   const finishCall = useCallback(async (reason = "completed", notifyPeer = true) => {
     const currentCallId = callState.callId;
