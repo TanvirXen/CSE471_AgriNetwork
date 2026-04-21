@@ -39,22 +39,43 @@ const DashboardProfile = () => {
     const walletStatus = searchParams.get('wallet');
     if (!walletStatus) return;
 
-    const nextWalletMessage = {
-      success: { type: 'success', text: 'Balance added successfully.' },
-      review: { type: 'error', text: 'Payment received but marked for manual review by SSLCommerz.' },
-      failed: { type: 'error', text: 'Payment failed. No balance was added.' },
-      cancelled: { type: 'error', text: 'Payment was cancelled before completion.' },
-      error: { type: 'error', text: 'Payment callback could not be verified.' },
-    }[walletStatus] || { type: 'error', text: 'Payment status could not be determined.' };
+    const syncWalletResult = async () => {
+      if (walletStatus === 'success' && token) {
+        try {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+            headers: {
+              'x-auth-token': token
+            }
+          });
 
-    setWalletMessage(nextWalletMessage);
+          if (res.ok) {
+            const latestUser = await res.json();
+            updateUserInfo(latestUser);
+          }
+        } catch (_err) {
+          // Message handling below is still enough for the UI.
+        }
+      }
 
-    const params = new URLSearchParams(window.location.search);
-    params.delete('wallet');
-    params.delete('tran_id');
-    const nextQuery = params.toString();
-    window.history.replaceState({}, '', `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`);
-  }, [searchParams]);
+      const nextWalletMessage = {
+        success: { type: 'success', text: 'Balance added successfully.' },
+        review: { type: 'error', text: 'Payment received but marked for manual review by SSLCommerz.' },
+        failed: { type: 'error', text: 'Payment failed. No balance was added.' },
+        cancelled: { type: 'error', text: 'Payment was cancelled before completion.' },
+        error: { type: 'error', text: 'Payment callback could not be verified.' },
+      }[walletStatus] || { type: 'error', text: 'Payment status could not be determined.' };
+
+      setWalletMessage(nextWalletMessage);
+
+      const params = new URLSearchParams(window.location.search);
+      params.delete('wallet');
+      params.delete('tran_id');
+      const nextQuery = params.toString();
+      window.history.replaceState({}, '', `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`);
+    };
+
+    syncWalletResult();
+  }, [searchParams, token, updateUserInfo]);
 
   const allCategories = ['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Organic', 'Livestock', 'Poultry', 'Fish'];
   const quickTopUpAmounts = ['500', '1000', '2000', '5000'];

@@ -24,11 +24,14 @@ const getSafeUrl = (value) => {
   if (!value) return null;
 
   try {
-    return new URL(value).toString();
+    const parsedUrl = new URL(value);
+    return parsedUrl.toString().replace(/\/+$/, "");
   } catch (_err) {
     return null;
   }
 };
+
+const buildAbsoluteUrl = (baseUrl, pathname) => new URL(pathname, `${baseUrl}/`).toString();
 
 const getFrontendBaseUrl = (req, payment) =>
   getSafeUrl(payment?.gatewayResponse?.frontendBaseUrl) ||
@@ -39,7 +42,7 @@ const getBackendBaseUrl = (req) =>
   getSafeUrl(process.env.BACKEND_PUBLIC_URL) || `${req.protocol}://${req.get("host")}`;
 
 const buildProfileRedirectUrl = (frontendBaseUrl, status, payment) => {
-  const redirectUrl = new URL(PROFILE_PATH, frontendBaseUrl);
+  const redirectUrl = new URL(buildAbsoluteUrl(frontendBaseUrl, PROFILE_PATH));
   redirectUrl.searchParams.set("wallet", status);
 
   if (payment?.sslTranId) {
@@ -191,10 +194,10 @@ exports.initiateWalletTopUp = async (req, res) => {
         total_amount: amount.toFixed(2),
         currency: "BDT",
         tran_id: transactionId,
-        success_url: `${backendBaseUrl}/api/payments/sslcommerz/success`,
-        fail_url: `${backendBaseUrl}/api/payments/sslcommerz/fail`,
-        cancel_url: `${backendBaseUrl}/api/payments/sslcommerz/cancel`,
-        ipn_url: `${backendBaseUrl}/api/payments/sslcommerz/ipn`,
+        success_url: buildAbsoluteUrl(backendBaseUrl, "/api/payments/sslcommerz/success"),
+        fail_url: buildAbsoluteUrl(backendBaseUrl, "/api/payments/sslcommerz/fail"),
+        cancel_url: buildAbsoluteUrl(backendBaseUrl, "/api/payments/sslcommerz/cancel"),
+        ipn_url: buildAbsoluteUrl(backendBaseUrl, "/api/payments/sslcommerz/ipn"),
         shipping_method: "NO",
         product_name: "AgriNetwork Wallet Top Up",
         product_category: "top up",

@@ -24,6 +24,7 @@ import ChatbotPage from './Pages/ChatbotPage'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import ProtectedRoute from './Components/ProtectedRoute'
+import TranslateToggle from './Components/TranslateToggle'
 
 // eslint-disable-next-line react-refresh/only-export-components
 const RootRedirect = () => {
@@ -83,6 +84,7 @@ createRoot(document.getElementById('root')).render(
           </Routes>
         </CartProvider>
       </AuthProvider>
+      <TranslateToggle />
     </BrowserRouter>
   </StrictMode>,
 )
