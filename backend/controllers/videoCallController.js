@@ -5,6 +5,27 @@ const User = require("../models/User");
 const buildRoomId = () =>
   `call_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
+const ensureParticipant = (call, userId, { joined = false } = {}) => {
+  let participant = call.participants.find(
+    (item) => item.userId.toString() === userId.toString()
+  );
+
+  if (!participant) {
+    participant = { userId };
+    call.participants.push(participant);
+  }
+
+  if (joined && !participant.joinedAt) {
+    participant.joinedAt = new Date();
+  }
+
+  if (joined) {
+    participant.leftAt = undefined;
+  }
+
+  return participant;
+};
+
 const serializeCall = async (call) => {
   await call.populate("createdBy", "fullName profile.avatar role");
   await call.populate("participants.userId", "fullName profile.avatar role");
@@ -32,17 +53,40 @@ exports.startCall = async (req, res) => {
     const callerId = req.user.id;
     const { receiverId, conversationId, purpose } = req.body || {};
 
+    if (!receiverId && !conversationId) {
+      return res.status(400).json({ message: "receiverId or conversationId is required." });
+    }
+
+    const resolvedConversationId =
+      conversationId || Message.getConversationId(callerId, receiverId);
+
+    let activeCall = await VideoCallSession.findOne({
+      conversationId: resolvedConversationId,
+      callStatus: "Ongoing",
+      endedAt: null,
+    }).sort({ createdAt: -1 });
+
+    if (activeCall) {
+      ensureParticipant(activeCall, callerId, { joined: true });
+      if (receiverId) {
+        ensureParticipant(activeCall, receiverId);
+      }
+      await activeCall.save();
+
+      return res.json({
+        call: await serializeCall(activeCall),
+        reused: true,
+      });
+    }
+
     if (!receiverId) {
-      return res.status(400).json({ message: "receiverId is required." });
+      return res.status(400).json({ message: "receiverId is required to create a new call." });
     }
 
     const receiver = await User.findById(receiverId).select("_id fullName profile.avatar role");
     if (!receiver) {
       return res.status(404).json({ message: "Receiver not found." });
     }
-
-    const resolvedConversationId =
-      conversationId || Message.getConversationId(callerId, receiverId);
 
     const call = await VideoCallSession.create({
       createdBy: callerId,
@@ -60,6 +104,7 @@ exports.startCall = async (req, res) => {
 
     return res.status(201).json({
       call: await serializeCall(call),
+      reused: false,
     });
   } catch (err) {
     console.error("Start video call error:", err.message);

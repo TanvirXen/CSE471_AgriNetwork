@@ -26,6 +26,33 @@ io.on("connection", (socket) => {
     console.log(`User ${userId} joined their personal room`);
   });
 
+  socket.on("join_call_room", (data = {}, ack) => {
+    if (!data?.roomId) {
+      if (typeof ack === "function") {
+        ack({ ok: false, message: "roomId is required" });
+      }
+      return;
+    }
+
+    socket.join(data.roomId);
+    const participantCount = io.sockets.adapter.rooms.get(data.roomId)?.size || 0;
+
+    socket.to(data.roomId).emit("video_call_participant_joined", {
+      roomId: data.roomId,
+      userId: data.userId,
+      participantCount,
+    });
+
+    if (typeof ack === "function") {
+      ack({ ok: true, participantCount });
+    }
+  });
+
+  socket.on("leave_call_room", (data = {}) => {
+    if (!data?.roomId) return;
+    socket.leave(data.roomId);
+  });
+
   socket.on("send_message", (data) => {
     // Emit to the conversation room
     io.to(data.conversationId).emit("receive_message", data);
@@ -50,9 +77,21 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("video_call_offer", (data) => {
+    if (data?.roomId) {
+      socket.to(data.roomId).emit("video_call_offer", data);
+    }
+  });
+
   socket.on("video_call_answered", (data) => {
     if (data?.targetUserId) {
       io.to(data.targetUserId).emit("video_call_answered", data);
+    }
+  });
+
+  socket.on("video_call_answer", (data) => {
+    if (data?.roomId) {
+      socket.to(data.roomId).emit("video_call_answer", data);
     }
   });
 
@@ -63,13 +102,17 @@ io.on("connection", (socket) => {
   });
 
   socket.on("video_call_ice_candidate", (data) => {
-    if (data?.targetUserId) {
+    if (data?.roomId) {
+      socket.to(data.roomId).emit("video_call_ice_candidate", data);
+    } else if (data?.targetUserId) {
       io.to(data.targetUserId).emit("video_call_ice_candidate", data);
     }
   });
 
   socket.on("video_call_ended", (data) => {
-    if (data?.targetUserId) {
+    if (data?.roomId) {
+      socket.to(data.roomId).emit("video_call_ended", data);
+    } else if (data?.targetUserId) {
       io.to(data.targetUserId).emit("video_call_ended", data);
     }
   });

@@ -140,12 +140,10 @@ function ChatNegotiationPage() {
   const [callState, setCallState] = useState({
     isOpen: false,
     status: "idle",
-    incoming: false,
     callId: null,
-    targetUserId: null,
+    roomId: null,
     conversationId: null,
-    offer: null,
-    fromUser: null,
+    isHost: false,
   });
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
@@ -161,6 +159,7 @@ function ChatNegotiationPage() {
   const localStreamRef = useRef(null);
   const remoteStreamRef = useRef(null);
   const activeConvRef = useRef(null);
+  const callStateRef = useRef(callState);
   const screenStreamRef = useRef(null);
   const callTimerRef = useRef(null);
   const finishCallRef = useRef(null);
@@ -176,6 +175,10 @@ function ChatNegotiationPage() {
   useEffect(() => {
     activeConvRef.current = activeConv;
   }, [activeConv]);
+
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
 
   const stopMediaStream = useCallback((stream) => {
     stream?.getTracks?.().forEach((track) => track.stop());
@@ -204,7 +207,7 @@ function ChatNegotiationPage() {
     pendingIceCandidatesRef.current = [];
   }, [stopMediaStream]);
 
-  const createPeerConnection = useCallback((targetUserId, callId) => {
+  const createPeerConnection = useCallback((roomId) => {
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
     }
@@ -214,10 +217,9 @@ function ChatNegotiationPage() {
     setRemoteStream(incomingRemoteStream);
 
     pc.onicecandidate = (event) => {
-      if (event.candidate && targetUserId) {
+      if (event.candidate && roomId) {
         socketRef.current?.emit("video_call_ice_candidate", {
-          callId,
-          targetUserId,
+          roomId,
           candidate: event.candidate,
         });
       }
@@ -264,6 +266,47 @@ function ChatNegotiationPage() {
     }
 
     pendingIceCandidatesRef.current = [];
+  }, []);
+
+  const joinCallRoom = useCallback(
+    (roomId) =>
+      new Promise((resolve, reject) => {
+        if (!socketRef.current) {
+          reject(new Error("Socket not connected."));
+          return;
+        }
+
+        socketRef.current.emit(
+          "join_call_room",
+          { roomId, userId: user?._id },
+          (response) => {
+            if (response?.ok === false) {
+              reject(new Error(response.message || "Failed to join call room."));
+              return;
+            }
+
+            resolve(response || { ok: true, participantCount: 1 });
+          }
+        );
+      }),
+    [user?._id]
+  );
+
+  const sendRoomOffer = useCallback(async (roomId) => {
+    const pc = peerConnectionRef.current;
+    if (!pc || pc.localDescription || pc.remoteDescription) return;
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    socketRef.current?.emit("video_call_offer", {
+      roomId,
+      offer,
+    });
+
+    setCallState((prev) =>
+      prev.roomId === roomId ? { ...prev, status: "connecting" } : prev
+    );
   }, []);
 
   // Initialize socket
@@ -348,58 +391,82 @@ function ChatNegotiationPage() {
       console.log("New message notification:", data);
     });
 
-    socketRef.current.on("video_call_invite", (data) => {
-      setCallState({
-        isOpen: true,
-        status: "incoming",
-        incoming: true,
-        callId: data.callId,
-        targetUserId: data.fromUserId,
-        conversationId: data.conversationId,
-        offer: data.offer,
-        fromUser: data.fromUser,
-      });
+    socketRef.current.on("video_call_participant_joined", async (data) => {
+      const currentCall = callStateRef.current;
+      if (!currentCall?.roomId || data?.roomId !== currentCall.roomId) return;
+
+      try {
+        if (currentCall.isHost) {
+          await sendRoomOffer(data.roomId);
+        } else {
+          setCallState((prev) =>
+            prev.roomId === data.roomId ? { ...prev, status: "connecting" } : prev
+          );
+        }
+      } catch (err) {
+        console.error("Failed to create room offer:", err);
+        setCallState((prev) =>
+          prev.roomId === data.roomId ? { ...prev, status: "error" } : prev
+        );
+      }
     });
 
-    socketRef.current.on("video_call_answered", async (data) => {
+    socketRef.current.on("video_call_offer", async (data) => {
+      const currentCall = callStateRef.current;
+      if (!currentCall?.roomId || data?.roomId !== currentCall.roomId) return;
+
+      try {
+        const pc = peerConnectionRef.current || createPeerConnection(data.roomId);
+        const stream = localStreamRef.current || (await ensureLocalMedia());
+
+        if (!pc.getSenders().length) {
+          stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+        }
+
+        if (!pc.remoteDescription) {
+          await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+          await flushPendingIceCandidates();
+        }
+
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        socketRef.current?.emit("video_call_answer", {
+          roomId: data.roomId,
+          answer,
+        });
+
+        setCallState((prev) =>
+          prev.roomId === data.roomId ? { ...prev, status: "connecting" } : prev
+        );
+      } catch (err) {
+        console.error("Failed to handle room offer:", err);
+        setCallState((prev) =>
+          prev.roomId === data.roomId ? { ...prev, status: "error" } : prev
+        );
+      }
+    });
+
+    socketRef.current.on("video_call_answer", async (data) => {
+      const currentCall = callStateRef.current;
+      if (!currentCall?.roomId || data?.roomId !== currentCall.roomId) return;
+
       try {
         if (!peerConnectionRef.current) return;
         await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
         await flushPendingIceCandidates();
-        setCallState((prev) => ({ ...prev, status: "connected", incoming: false }));
       } catch (err) {
-        console.error("Failed to apply remote answer:", err);
-        setCallState((prev) => ({ ...prev, status: "error" }));
+        console.error("Failed to apply room answer:", err);
+        setCallState((prev) =>
+          prev.roomId === data.roomId ? { ...prev, status: "error" } : prev
+        );
       }
     });
 
-    socketRef.current.on("video_call_declined", () => {
-      resetCallResources();
-      setCallState({
-        isOpen: true,
-        status: "declined",
-        incoming: false,
-        callId: null,
-        targetUserId: null,
-        conversationId: null,
-        offer: null,
-        fromUser: null,
-      });
-      setTimeout(() => {
-        setCallState({
-          isOpen: false,
-          status: "idle",
-          incoming: false,
-          callId: null,
-          targetUserId: null,
-          conversationId: null,
-          offer: null,
-          fromUser: null,
-        });
-      }, 2500);
-    });
-
     socketRef.current.on("video_call_ice_candidate", async (data) => {
+      const currentCall = callStateRef.current;
+      if (!currentCall?.roomId || data?.roomId !== currentCall.roomId) return;
+
       try {
         if (!peerConnectionRef.current?.remoteDescription) {
           pendingIceCandidatesRef.current.push(data.candidate);
@@ -412,23 +479,15 @@ function ChatNegotiationPage() {
       }
     });
 
-    socketRef.current.on("video_call_ended", () => {
-      resetCallResources();
-      setCallState({
-        isOpen: false,
-        status: "idle",
-        incoming: false,
-        callId: null,
-        targetUserId: null,
-        conversationId: null,
-        offer: null,
-        fromUser: null,
-      });
+    socketRef.current.on("video_call_ended", (data) => {
+      const currentCall = callStateRef.current;
+      if (!currentCall?.roomId || (data?.roomId && data.roomId !== currentCall.roomId)) return;
+      finishCallRef.current?.("completed", false);
     });
 
     return () => socketRef.current?.disconnect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, flushPendingIceCandidates, resetCallResources]);
+  }, [user, createPeerConnection, ensureLocalMedia, flushPendingIceCandidates, resetCallResources, sendRoomOffer]);
 
   // Handle incoming chat request from Map
   useEffect(() => {
@@ -491,7 +550,14 @@ function ChatNegotiationPage() {
     : "You";
 
   const handleStartVideoCall = useCallback(async () => {
-    if (!token || !activeConv?.userId || !user?._id || callState.status === "connecting" || callState.status === "connected" || callState.status === "outgoing") {
+    if (
+      !token ||
+      !activeConv?.userId ||
+      !user?._id ||
+      callState.isOpen ||
+      callState.status === "connecting" ||
+      callState.status === "connected"
+    ) {
       return;
     }
 
@@ -514,34 +580,30 @@ function ChatNegotiationPage() {
       }
 
       const call = payload.call;
-      const pc = createPeerConnection(activeConv.userId, call.id);
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+      const pc = createPeerConnection(call.roomId);
+      if (!pc.getSenders().length) {
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      }
 
       setCallState({
         isOpen: true,
-        status: "outgoing",
-        incoming: false,
+        status: "waiting",
         callId: call.id,
-        targetUserId: activeConv.userId,
+        roomId: call.roomId,
         conversationId: call.conversationId,
-        offer: null,
-        fromUser: null,
+        isHost: false,
       });
 
-      socketRef.current?.emit("video_call_invite", {
+      const roomJoin = await joinCallRoom(call.roomId);
+      const isHost = Number(roomJoin?.participantCount || 1) <= 1;
+
+      setCallState({
+        isOpen: true,
+        status: isHost ? "waiting" : "connecting",
         callId: call.id,
+        roomId: call.roomId,
         conversationId: call.conversationId,
-        targetUserId: activeConv.userId,
-        fromUserId: user._id,
-        fromUser: {
-          _id: user._id,
-          fullName: user.fullName,
-          avatar: senderInitials,
-        },
-        offer,
+        isHost,
       });
     } catch (err) {
       console.error("Failed to start video call:", err);
@@ -549,85 +611,39 @@ function ChatNegotiationPage() {
       setCallState({
         isOpen: true,
         status: "error",
-        incoming: false,
         callId: null,
-        targetUserId: activeConv?.userId || null,
+        roomId: null,
         conversationId: activeConv?.conversationId || null,
-        offer: null,
-        fromUser: null,
+        isHost: false,
       });
       setTimeout(() => {
         setCallState({
           isOpen: false,
           status: "idle",
-          incoming: false,
           callId: null,
-          targetUserId: null,
+          roomId: null,
           conversationId: null,
-          offer: null,
-          fromUser: null,
+          isHost: false,
         });
       }, 1800);
     }
-  }, [activeConv, callState.status, createPeerConnection, ensureLocalMedia, resetCallResources, senderInitials, token, user]);
-
-  const handleAcceptVideoCall = useCallback(async () => {
-    if (!token || !callState.callId || !callState.offer || !callState.targetUserId) return;
-
-    try {
-      const stream = await ensureLocalMedia();
-
-      const res = await fetch(`${API_BASE}/api/messages/calls/${callState.callId}/answer`, {
-        method: "POST",
-        headers: { "x-auth-token": token },
-      });
-
-      const payload = await res.json();
-      if (!res.ok) {
-        throw new Error(payload.message || "Failed to answer call.");
-      }
-
-      const pc = createPeerConnection(callState.targetUserId, callState.callId);
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
-      await pc.setRemoteDescription(new RTCSessionDescription(callState.offer));
-      await flushPendingIceCandidates();
-
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      socketRef.current?.emit("video_call_answered", {
-        callId: callState.callId,
-        targetUserId: callState.targetUserId,
-        answer,
-      });
-
-      setCallState((prev) => ({ ...prev, status: "connecting", incoming: false, offer: null }));
-    } catch (err) {
-      console.error("Failed to accept video call:", err);
-      resetCallResources();
-      setCallState({
-        isOpen: true,
-        status: "error",
-        incoming: false,
-        callId: null,
-        targetUserId: null,
-        conversationId: null,
-        offer: null,
-        fromUser: null,
-      });
-    }
-  }, [callState.callId, callState.offer, callState.targetUserId, createPeerConnection, ensureLocalMedia, flushPendingIceCandidates, resetCallResources, token]);
+  }, [activeConv, callState.isOpen, callState.status, createPeerConnection, ensureLocalMedia, joinCallRoom, resetCallResources, token, user]);
 
   const finishCall = useCallback(async (reason = "completed", notifyPeer = true) => {
     const currentCallId = callState.callId;
-    const targetUserId = callState.targetUserId;
+    const currentRoomId = callState.roomId;
 
-    if (notifyPeer && targetUserId) {
-      const eventName = reason === "declined" ? "video_call_declined" : "video_call_ended";
-      socketRef.current?.emit(eventName, {
+    if (notifyPeer && currentRoomId) {
+      socketRef.current?.emit("video_call_ended", {
         callId: currentCallId,
-        targetUserId,
+        roomId: currentRoomId,
+      });
+    }
+
+    if (currentRoomId) {
+      socketRef.current?.emit("leave_call_room", {
+        roomId: currentRoomId,
+        userId: user?._id,
       });
     }
 
@@ -647,28 +663,22 @@ function ChatNegotiationPage() {
     setCallState({
       isOpen: false,
       status: "idle",
-      incoming: false,
       callId: null,
-      targetUserId: null,
+      roomId: null,
       conversationId: null,
-      offer: null,
-      fromUser: null,
+      isHost: false,
     });
-  }, [callState.callId, callState.targetUserId, resetCallResources, token]);
+  }, [callState.callId, callState.roomId, resetCallResources, token, user?._id]);
 
   useEffect(() => {
     finishCallRef.current = finishCall;
   }, [finishCall]);
 
   useEffect(() => {
-    if (callState.status !== "incoming") return;
+    if (callState.status !== "waiting") return;
     const timer = setTimeout(() => finishCallRef.current?.("missed", true), 30000);
     return () => clearTimeout(timer);
   }, [callState.status]);
-
-  const handleDeclineVideoCall = useCallback(async () => {
-    await finishCall("declined", true);
-  }, [finishCall]);
 
   const handleEndVideoCall = useCallback(async () => {
     setCallState((prev) => ({ ...prev, status: "ending" }));
@@ -1141,13 +1151,7 @@ function ChatNegotiationPage() {
       <VideoCallModal
         isOpen={callState.isOpen}
         status={callState.status}
-        incoming={callState.incoming}
-        conversation={callState.incoming
-          ? {
-              name: callState.fromUser?.fullName,
-              avatar: callState.fromUser?.avatar || callState.fromUser?.fullName?.slice(0, 2).toUpperCase(),
-            }
-          : activeConv}
+        conversation={activeConv}
         localStream={localStream}
         remoteStream={remoteStream}
         isMuted={isMuted}
@@ -1155,8 +1159,6 @@ function ChatNegotiationPage() {
         isScreenSharing={isScreenSharing}
         callDuration={callDuration}
         iceState={iceState}
-        onAccept={handleAcceptVideoCall}
-        onDecline={handleDeclineVideoCall}
         onEnd={handleEndVideoCall}
         onToggleMute={handleToggleMute}
         onToggleCamera={handleToggleCamera}

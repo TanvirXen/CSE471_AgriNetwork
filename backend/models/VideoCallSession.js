@@ -16,7 +16,7 @@ const VideoCallSessionSchema = new mongoose.Schema(
 
     listingId: { type: mongoose.Schema.Types.ObjectId, ref: "FarmerListing", index: true },
     orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order", index: true },
-    conversationId: { type: mongoose.Schema.Types.ObjectId, ref: "Conversation", index: true },
+    conversationId: { type: String, trim: true, index: true },
 
     provider: {
       type: String,
