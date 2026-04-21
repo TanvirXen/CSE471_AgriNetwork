@@ -568,8 +568,6 @@ function ChatNegotiationPage() {
     }
 
     try {
-      await ensureLocalMedia();
-
       const res = await fetch(`${API_BASE}/api/messages/calls/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-auth-token": token },
@@ -629,7 +627,7 @@ function ChatNegotiationPage() {
         });
       }, 1800);
     }
-  }, [activeConv, callState.isOpen, callState.status, ensureLocalMedia, joinCallRoom, resetCallResources, token, user]);
+  }, [activeConv, callState.isOpen, callState.status, joinCallRoom, resetCallResources, token, user]);
 
   const finishCall = useCallback(async (reason = "completed", notifyPeer = true) => {
     const currentCallId = callState.callId;
