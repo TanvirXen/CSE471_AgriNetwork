@@ -1,5 +1,7 @@
 const User = require("../models/User");
 
+const getSafeUserById = async (userId) => User.findById(userId).select("-passwordHash");
+
 // @route   POST api/users/profile
 // @desc    Complete/Create profile
 // @access  Private
@@ -32,7 +34,7 @@ exports.createProfile = async (req, res) => {
     user.profile.profileCompletion = 70; // Set a progress value
 
     await user.save();
-    res.json(user);
+    res.json(await getSafeUserById(user._id));
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
@@ -71,7 +73,7 @@ exports.updateProfile = async (req, res) => {
     }
 
     await user.save();
-    res.json(user);
+    res.json(await getSafeUserById(user._id));
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");

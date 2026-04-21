@@ -151,12 +151,19 @@ function ChatNegotiationPage() {
   const [remoteStream, setRemoteStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+  const [iceState, setIceState] = useState("new");
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const pendingIceCandidatesRef = useRef([]);
   const localStreamRef = useRef(null);
   const remoteStreamRef = useRef(null);
+  const activeConvRef = useRef(null);
+  const screenStreamRef = useRef(null);
+  const callTimerRef = useRef(null);
+  const finishCallRef = useRef(null);
 
   useEffect(() => {
     localStreamRef.current = localStream;
@@ -165,6 +172,10 @@ function ChatNegotiationPage() {
   useEffect(() => {
     remoteStreamRef.current = remoteStream;
   }, [remoteStream]);
+
+  useEffect(() => {
+    activeConvRef.current = activeConv;
+  }, [activeConv]);
 
   const stopMediaStream = useCallback((stream) => {
     stream?.getTracks?.().forEach((track) => track.stop());
@@ -180,10 +191,16 @@ function ChatNegotiationPage() {
 
     stopMediaStream(localStreamRef.current);
     stopMediaStream(remoteStreamRef.current);
+    screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+    screenStreamRef.current = null;
     setLocalStream(null);
     setRemoteStream(null);
     setIsMuted(false);
     setIsCameraOff(false);
+    setIsScreenSharing(false);
+    clearInterval(callTimerRef.current);
+    setCallDuration(0);
+    setIceState("new");
     pendingIceCandidatesRef.current = [];
   }, [stopMediaStream]);
 
@@ -209,6 +226,13 @@ function ChatNegotiationPage() {
     pc.ontrack = (event) => {
       event.streams[0]?.getTracks().forEach((track) => incomingRemoteStream.addTrack(track));
       setCallState((prev) => ({ ...prev, status: "connected" }));
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      setIceState(pc.iceConnectionState);
+      if (pc.iceConnectionState === "failed") {
+        setCallState((prev) => ({ ...prev, status: "error" }));
+      }
     };
 
     peerConnectionRef.current = pc;
@@ -251,27 +275,21 @@ function ChatNegotiationPage() {
     }
 
     socketRef.current.on("receive_message", (data) => {
-      // Only add to current list if it belongs to active conversation
-      if (activeConv && data.conversationId === activeConv.conversationId) {
-        // Avoid adding my own message again if it was already added locally
+      const currentConv = activeConvRef.current;
+      if (currentConv && data.conversationId === currentConv.conversationId) {
         const currentUserId = user?._id?.toString();
         const msgSenderId = (data.senderId || data.sender?._id || data.sender)?.toString();
         const isSentByMe = currentUserId === msgSenderId;
-        
-        // For simple text/image messages, we might already have added them to state
-        // For now, let's just make sure isSent is correct and initials are correct
-        setMessages((prev) => {
-          // Check for duplicate locally added messages by time or ID if possible
-          // But as a simple fix, only add if it's received from the other person
-          if (isSentByMe) return prev; 
 
+        setMessages((prev) => {
+          if (isSentByMe) return prev;
           return [
             ...prev,
             {
               id: Date.now(),
               type: data.type || "text",
               isSent: false,
-              senderInitials: activeConv?.avatar || "??",
+              senderInitials: currentConv?.avatar || "??",
               text: data.text,
               timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
               mediaUrl: data.mediaUrl,
@@ -359,7 +377,7 @@ function ChatNegotiationPage() {
       resetCallResources();
       setCallState({
         isOpen: true,
-        status: "error",
+        status: "declined",
         incoming: false,
         callId: null,
         targetUserId: null,
@@ -378,7 +396,7 @@ function ChatNegotiationPage() {
           offer: null,
           fromUser: null,
         });
-      }, 1800);
+      }, 2500);
     });
 
     socketRef.current.on("video_call_ice_candidate", async (data) => {
@@ -409,7 +427,8 @@ function ChatNegotiationPage() {
     });
 
     return () => socketRef.current?.disconnect();
-  }, [user, activeConv, flushPendingIceCandidates, resetCallResources]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, flushPendingIceCandidates, resetCallResources]);
 
   // Handle incoming chat request from Map
   useEffect(() => {
@@ -456,6 +475,26 @@ function ChatNegotiationPage() {
   }, [messages]);
 
   useEffect(() => () => resetCallResources(), [resetCallResources]);
+
+  useEffect(() => {
+    if (callState.status === "connected") {
+      setCallDuration(0);
+      callTimerRef.current = setInterval(() => setCallDuration((d) => d + 1), 1000);
+    } else {
+      clearInterval(callTimerRef.current);
+    }
+    return () => clearInterval(callTimerRef.current);
+  }, [callState.status]);
+
+  useEffect(() => {
+    finishCallRef.current = finishCall;
+  }, [finishCall]);
+
+  useEffect(() => {
+    if (callState.status !== "incoming") return;
+    const timer = setTimeout(() => finishCallRef.current?.("missed", true), 30000);
+    return () => clearTimeout(timer);
+  }, [callState.status]);
 
   const senderInitials = user?.fullName
     ? user.fullName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -653,6 +692,41 @@ function ChatNegotiationPage() {
     });
     setIsCameraOff(nextCameraOff);
   }, [isCameraOff, localStream]);
+
+  const handleToggleScreenShare = useCallback(async () => {
+    if (!peerConnectionRef.current || callState.status !== "connected") return;
+
+    if (isScreenSharing) {
+      screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+      screenStreamRef.current = null;
+      const camTrack = localStreamRef.current?.getVideoTracks()[0];
+      if (camTrack) {
+        const sender = peerConnectionRef.current.getSenders().find((s) => s.track?.kind === "video");
+        if (sender) await sender.replaceTrack(camTrack);
+      }
+      setIsScreenSharing(false);
+    } else {
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        screenStreamRef.current = screenStream;
+        const screenTrack = screenStream.getVideoTracks()[0];
+        const sender = peerConnectionRef.current.getSenders().find((s) => s.track?.kind === "video");
+        if (sender) await sender.replaceTrack(screenTrack);
+        screenTrack.onended = () => {
+          screenStreamRef.current = null;
+          const camTrack2 = localStreamRef.current?.getVideoTracks()[0];
+          if (camTrack2 && peerConnectionRef.current) {
+            const s = peerConnectionRef.current.getSenders().find((x) => x.track?.kind === "video");
+            if (s) s.replaceTrack(camTrack2);
+          }
+          setIsScreenSharing(false);
+        };
+        setIsScreenSharing(true);
+      } catch (err) {
+        console.error("Screen share failed:", err);
+      }
+    }
+  }, [callState.status, isScreenSharing]);
 
   // Load messages from backend when switching convos
   const loadBackendMessages = useCallback(async (convId) => {
@@ -1078,11 +1152,15 @@ function ChatNegotiationPage() {
         remoteStream={remoteStream}
         isMuted={isMuted}
         isCameraOff={isCameraOff}
+        isScreenSharing={isScreenSharing}
+        callDuration={callDuration}
+        iceState={iceState}
         onAccept={handleAcceptVideoCall}
         onDecline={handleDeclineVideoCall}
         onEnd={handleEndVideoCall}
         onToggleMute={handleToggleMute}
         onToggleCamera={handleToggleCamera}
+        onToggleScreenShare={handleToggleScreenShare}
       />
     </div>
   );

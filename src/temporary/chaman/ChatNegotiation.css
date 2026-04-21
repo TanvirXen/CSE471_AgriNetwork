@@ -1144,6 +1144,50 @@
   background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
+.cn-call-btn--active {
+  background: rgba(88, 129, 87, 0.4) !important;
+  border: 1px solid rgba(88, 129, 87, 0.6);
+  box-shadow: 0 0 0 2px rgba(88, 129, 87, 0.25);
+}
+
+.cn-call-modal__badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.cn-call-modal__badge--warn {
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+}
+
+.cn-call-modal__status--timer {
+  font-variant-numeric: tabular-nums;
+  color: #4ade80;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+}
+
+@keyframes cn-ring-pulse {
+  0%, 100% { box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35), 0 0 0 0 rgba(34, 197, 94, 0.45); }
+  50% { box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35), 0 0 0 18px rgba(34, 197, 94, 0); }
+}
+
+.cn-call-modal--ringing {
+  animation: cn-ring-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes cn-avatar-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  50% { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(34, 197, 94, 0); }
+}
+
+.cn-call-placeholder--ringing .cn-call-placeholder__avatar {
+  animation: cn-avatar-pulse 1.6s ease-in-out infinite;
+}
+
 /* ============================================================
    STATUS MESSAGES
    ============================================================ */

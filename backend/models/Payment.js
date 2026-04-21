@@ -9,7 +9,7 @@ const PaymentSchema = new mongoose.Schema(
 
     transactionType: {
       type: String,
-      enum: ["OrderPayment", "EscrowFunding", "EscrowRelease", "Refund", "Withdrawal", "Payout"],
+      enum: ["OrderPayment", "EscrowFunding", "EscrowRelease", "Refund", "Withdrawal", "Payout", "WalletTopUp"],
       required: true,
       index: true,
     },

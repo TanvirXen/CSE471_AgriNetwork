@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { MapPin, Phone, Mail, Store, Tag, Camera, Check, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Camera, Check, Loader2, MapPin, Phone, Store, WalletCards } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const DashboardProfile = () => {
   const { user, token, updateUserInfo } = useAuth();
+  const [searchParams] = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [walletAmount, setWalletAmount] = useState('500');
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [walletMessage, setWalletMessage] = useState({ type: '', text: '' });
   
   const [profile, setProfile] = useState({
     fullName: '',
@@ -30,7 +35,34 @@ const DashboardProfile = () => {
     }
   }, [user]);
 
+  useEffect(() => {
+    const walletStatus = searchParams.get('wallet');
+    if (!walletStatus) return;
+
+    const nextWalletMessage = {
+      success: { type: 'success', text: 'Balance added successfully.' },
+      review: { type: 'error', text: 'Payment received but marked for manual review by SSLCommerz.' },
+      failed: { type: 'error', text: 'Payment failed. No balance was added.' },
+      cancelled: { type: 'error', text: 'Payment was cancelled before completion.' },
+      error: { type: 'error', text: 'Payment callback could not be verified.' },
+    }[walletStatus] || { type: 'error', text: 'Payment status could not be determined.' };
+
+    setWalletMessage(nextWalletMessage);
+
+    const params = new URLSearchParams(window.location.search);
+    params.delete('wallet');
+    params.delete('tran_id');
+    const nextQuery = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`);
+  }, [searchParams]);
+
   const allCategories = ['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Organic', 'Livestock', 'Poultry', 'Fish'];
+  const quickTopUpAmounts = ['500', '1000', '2000', '5000'];
+  const formattedBalance = new Intl.NumberFormat('en-BD', {
+    style: 'currency',
+    currency: 'BDT',
+    maximumFractionDigits: 2
+  }).format(user?.walletBalance || 0);
 
   const toggleCategory = (cat) => {
     setProfile(prev => ({
@@ -39,6 +71,42 @@ const DashboardProfile = () => {
         ? prev.categories.filter(c => c !== cat) 
         : [...prev.categories, cat]
     }));
+  };
+
+  const handleAddBalance = async () => {
+    const amount = Number(walletAmount);
+
+    if (!Number.isFinite(amount) || amount < 10) {
+      setWalletMessage({ type: 'error', text: 'Enter at least BDT 10 to continue.' });
+      return;
+    }
+
+    setWalletLoading(true);
+    setWalletMessage({ type: '', text: '' });
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/wallet/initiate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ amount })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.gatewayUrl) {
+        setWalletMessage({ type: 'error', text: data.message || 'Unable to start SSLCommerz payment.' });
+        setWalletLoading(false);
+        return;
+      }
+
+      window.location.assign(data.gatewayUrl);
+    } catch (_err) {
+      setWalletMessage({ type: 'error', text: 'Connection error. Please try again.' });
+      setWalletLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -81,6 +149,87 @@ const DashboardProfile = () => {
 
   return (
     <div className="profile-container">
+      <div style={{
+        marginBottom: '1.5rem',
+        padding: '1.5rem',
+        borderRadius: '20px',
+        background: 'linear-gradient(135deg, #123524 0%, #1f6b47 100%)',
+        color: 'white',
+        boxShadow: '0 20px 40px rgba(18, 53, 36, 0.18)'
+      }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '0.45rem 0.8rem', borderRadius: '999px', background: 'rgba(255,255,255,0.12)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+              <WalletCards size={16} />
+              AgriNetwork Wallet
+            </div>
+            <p style={{ margin: 0, opacity: 0.8, fontSize: '0.95rem' }}>Available balance</p>
+            <h3 style={{ margin: '0.3rem 0 0', fontSize: '2.25rem', fontWeight: '800', letterSpacing: '-0.03em' }}>{formattedBalance}</h3>
+          </div>
+
+          <div style={{ flex: '1 1 320px', maxWidth: '430px', width: '100%' }}>
+            <label className="form-label" style={{ color: 'rgba(255,255,255,0.85)', marginBottom: '0.5rem' }}>Add balance with SSLCommerz</label>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <input
+                type="number"
+                min="10"
+                step="0.01"
+                className="form-input"
+                value={walletAmount}
+                disabled={walletLoading}
+                onChange={(e) => setWalletAmount(e.target.value)}
+                placeholder="Enter amount in BDT"
+                style={{ flex: '1 1 180px', background: 'rgba(255,255,255,0.96)' }}
+              />
+              <button
+                type="button"
+                className="primary-button"
+                onClick={handleAddBalance}
+                disabled={walletLoading}
+                style={{ width: 'auto', marginTop: 0, display: 'inline-flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}
+              >
+                {walletLoading ? <Loader2 size={18} className="spin" /> : 'Add Balance'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '0.9rem' }}>
+              {quickTopUpAmounts.map(amount => (
+                <button
+                  key={amount}
+                  type="button"
+                  onClick={() => setWalletAmount(amount)}
+                  disabled={walletLoading}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '999px',
+                    border: walletAmount === amount ? '1px solid rgba(255,255,255,0.8)' : '1px solid rgba(255,255,255,0.18)',
+                    background: walletAmount === amount ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
+                  BDT {amount}
+                </button>
+              ))}
+            </div>
+
+            {walletMessage.text && (
+              <div style={{
+                marginTop: '0.9rem',
+                padding: '0.7rem 0.9rem',
+                borderRadius: '12px',
+                background: walletMessage.type === 'success' ? 'rgba(220, 252, 231, 0.92)' : 'rgba(254, 226, 226, 0.95)',
+                color: walletMessage.type === 'success' ? '#166534' : '#991b1b',
+                fontSize: '0.9rem'
+              }}>
+                {walletMessage.text}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
           <h2 style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--primary-dark)' }}>My Profile</h2>

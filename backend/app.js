@@ -8,11 +8,12 @@ const marketRoutes = require("./routes/marketRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const discoveryRoutes = require("./routes/discoveryRoutes");
 const chatbotRoutes = require("./routes/chatbotRoutes");
-
 const cropRoutes = require("./routes/cropRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 
 const app = express();
+app.set("trust proxy", 1);
 const messageUploadMiddleware = fileUpload({
   limits: { fileSize: 10 * 1024 * 1024 },
   abortOnLimit: true,
@@ -24,6 +25,7 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Base Route
@@ -45,6 +47,7 @@ app.use("/api/discovery", discoveryRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/crops", cropRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/payments", paymentRoutes);
 
 module.exports = app;
 

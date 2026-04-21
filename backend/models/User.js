@@ -116,6 +116,7 @@ const UserSchema = new mongoose.Schema(
     isPhoneVerified: { type: Boolean, default: false },
 
     profile: { type: UserProfileSchema, default: () => ({}) },
+    walletBalance: { type: Number, default: 0, min: 0 },
 
     addresses: { type: [AddressSchema], default: [] },
 
