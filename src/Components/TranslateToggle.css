@@ -1,4 +1,4 @@
-/* ── Translate toggle pill ─────────────────────────── */
+/* ── Translate toggle ────────────────────────────────────── */
 .translate-toggle {
   position: fixed;
   top: 14px;
@@ -8,83 +8,89 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 11px 5px 8px;
+  padding: 6px 12px 6px 9px;
 
-  background: #ffffff;
+  background: #fff;
   border: 1.5px solid #cde0cf;
   border-radius: 999px;
-  box-shadow: 0 2px 8px rgba(52, 78, 65, 0.14);
+  box-shadow: 0 2px 8px rgba(52, 78, 65, 0.13);
 
+  font-family: inherit;
   font-size: 0.78rem;
   font-weight: 700;
   color: #2d4a38;
   cursor: pointer;
   user-select: none;
   line-height: 1;
-  transition: background 0.15s, box-shadow 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s;
 }
 
 .translate-toggle:hover:not(:disabled) {
-  background: #f0f8f1;
+  background: #f0f8f2;
   border-color: #588157;
   box-shadow: 0 4px 14px rgba(52, 78, 65, 0.2);
 }
 
 .translate-toggle:disabled {
-  cursor: wait;
-  opacity: 0.8;
+  cursor: progress;
 }
 
-/* Active (EN) state — dark green pill */
+/* Active English state */
 .translate-toggle--en {
   background: #344e41;
   border-color: #344e41;
-  color: #ffffff;
-  box-shadow: 0 2px 10px rgba(52, 78, 65, 0.35);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(52, 78, 65, 0.32);
 }
 .translate-toggle--en:hover:not(:disabled) {
   background: #3a5a4a;
-  border-color: #3a5a4a;
 }
 
-/* Globe icon */
+/* Error state */
+.translate-toggle--error {
+  border-color: #e05252;
+  color: #c0392b;
+}
+
+/* Globe */
 .tt-globe {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   line-height: 1;
-  display: flex;
-  align-items: center;
 }
 
-/* Label track */
+/* Label track (বাং | EN) */
 .tt-track {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .tt-option {
-  opacity: 0.38;
+  opacity: 0.36;
   transition: opacity 0.15s;
-  letter-spacing: 0.01em;
 }
-
 .tt-option--active {
   opacity: 1;
 }
 
 .tt-sep {
-  opacity: 0.25;
+  opacity: 0.22;
   font-weight: 400;
-  font-size: 0.72rem;
 }
 
-/* Loading spinner */
-@keyframes tt-spin {
-  to { transform: rotate(360deg); }
+/* Inline label for loading/error */
+.tt-label {
+  letter-spacing: 0.01em;
 }
+.tt-label--error {
+  color: inherit;
+}
+
+/* Spinner */
+@keyframes tt-spin { to { transform: rotate(360deg); } }
 
 .tt-spinner {
-  display: inline-block;
   width: 11px;
   height: 11px;
   border: 2px solid currentColor;

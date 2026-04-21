@@ -1,83 +1,69 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
-// Bengali Unicode block
-const HAS_BENGALI = /[\u0980-\u09FF]/;
+// Bengali Unicode block — only translate text containing these chars
+const BENGALI = /[\u0980-\u09FF]/;
+const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'iframe', 'code', 'pre', 'textarea', 'input', 'select']);
+const CACHE_KEY = 'agri_bn_en_v3';
 
-// Nodes whose content we never touch
-const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'iframe', 'code', 'pre', 'textarea']);
-
-const SESSION_KEY = 'agri_bn2en_v1';
-const BATCH_CHAR_LIMIT = 400;
-const SEP = ' ||| ';
-
-// ---------- cache helpers ----------
+// ── Persistent cache ─────────────────────────────────────────────────────────
 function loadCache() {
-  try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || '{}'); }
+  try { return JSON.parse(sessionStorage.getItem(CACHE_KEY) || '{}'); }
   catch { return {}; }
 }
-function saveCache(c) {
-  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(c)); }
+function persistCache(c) {
+  try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(c)); }
   catch {}
 }
 
-// ---------- MyMemory API (free, no key) ----------
-async function callMyMemory(texts) {
-  const query = texts.join(SEP);
-  const url =
-    `https://api.mymemory.translated.net/get?q=${encodeURIComponent(query)}&langpair=bn|en`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-  const json = await res.json();
-  if (json.responseStatus !== 200) throw new Error(json.responseDetails);
-  const parts = json.responseData.translatedText.split(SEP);
-  const result = {};
-  texts.forEach((t, i) => { result[t] = (parts[i] ?? t).trim() || t; });
-  return result;
-}
-
-// Split texts into batches that stay under BATCH_CHAR_LIMIT chars each
-function makeBatches(texts) {
-  const batches = [];
-  let cur = [], len = 0;
-  for (const t of texts) {
-    if (len + t.length + SEP.length > BATCH_CHAR_LIMIT && cur.length) {
-      batches.push(cur);
-      cur = []; len = 0;
+// ── MyMemory API (free, CORS-enabled, no key) ────────────────────────────────
+async function fetchTranslation(text) {
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 10_000);
+  try {
+    const url =
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=bn|en`;
+    const res = await fetch(url, { signal: ctrl.signal });
+    const json = await res.json();
+    clearTimeout(tid);
+    if (json.responseStatus === 200 && json.responseData?.translatedText) {
+      const t = json.responseData.translatedText.trim();
+      // Reject if API returned the same text or something that still has Bengali
+      if (t && t !== text && !BENGALI.test(t)) return t;
     }
-    cur.push(t);
-    len += t.length + SEP.length;
-  }
-  if (cur.length) batches.push(cur);
-  return batches;
+  } catch { clearTimeout(tid); }
+  return null; // signal: no usable translation
 }
 
-async function translateTexts(texts, cache) {
-  const uncached = texts.filter(t => HAS_BENGALI.test(t) && cache[t] === undefined);
-  if (!uncached.length) return;
+async function translateBatch(texts, cache) {
+  // Only process texts not already cached and containing Bengali
+  const todo = [...new Set(texts)].filter(t => BENGALI.test(t) && t.length > 1 && !cache[t]);
+  if (!todo.length) return;
 
-  const batches = makeBatches(uncached);
-  // sequential to avoid hammering the free API
-  for (const batch of batches) {
-    try {
-      const result = await callMyMemory(batch);
-      Object.assign(cache, result);
-    } catch {
-      batch.forEach(t => { cache[t] = t; }); // fallback: keep original
-    }
+  // 4 parallel requests
+  const CONC = 4;
+  for (let i = 0; i < todo.length; i += CONC) {
+    const slice = todo.slice(i, i + CONC);
+    const results = await Promise.all(slice.map(fetchTranslation));
+    slice.forEach((orig, idx) => {
+      if (results[idx]) cache[orig] = results[idx];
+    });
+    persistCache(cache);
   }
-  saveCache(cache);
 }
 
-// ---------- DOM helpers ----------
-function walkTextNodes(root) {
+// ── DOM helpers ──────────────────────────────────────────────────────────────
+
+// Collect text nodes that contain Bengali characters — used BEFORE translation
+function getBengaliNodes(root) {
   const nodes = [];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
-      const text = node.nodeValue?.trim();
-      if (!text || text.length < 2) return NodeFilter.FILTER_REJECT;
+      const text = (node.nodeValue || '').trim();
+      if (!text || text.length < 2 || !BENGALI.test(text)) return NodeFilter.FILTER_REJECT;
       const el = node.parentElement;
       if (!el) return NodeFilter.FILTER_REJECT;
       if (SKIP_TAGS.has(el.tagName?.toLowerCase())) return NodeFilter.FILTER_REJECT;
-      if (el.closest?.('[translate="no"], .translate-no, .translate-toggle'))
+      if (el.closest('[translate="no"], .translate-toggle, .translate-no'))
         return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     },
@@ -87,88 +73,137 @@ function walkTextNodes(root) {
   return nodes;
 }
 
-function applyCache(cache) {
-  const nodes = walkTextNodes(document.body);
+function setNodeTranslated(node, translated) {
+  const raw = node.nodeValue || '';
+  const lead = raw.match(/^\s*/)?.[0] ?? '';
+  const trail = raw.match(/\s*$/)?.[0] ?? '';
+  node.nodeValue = lead + translated + trail;
+}
+
+function applyFromCache(nodes, cache) {
   nodes.forEach(node => {
-    const orig = node.nodeValue?.trim();
-    if (orig && cache[orig]) {
-      // Preserve leading/trailing whitespace
-      const lead = node.nodeValue.match(/^\s*/)?.[0] ?? '';
-      const trail = node.nodeValue.match(/\s*$/)?.[0] ?? '';
-      node.nodeValue = lead + cache[orig] + trail;
-    }
+    const text = (node.nodeValue || '').trim();
+    if (text && cache[text]) setNodeTranslated(node, cache[text]);
   });
 }
 
-// ---------- public hook ----------
+// ── Hook ─────────────────────────────────────────────────────────────────────
 export function usePageTranslator() {
   const [isEnglish, setIsEnglish] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | loading | done | error
   const cache = useRef(loadCache());
   const applying = useRef(false);
-  const observerRef = useRef(null);
+  const obsRef = useRef(null);
+  const newContentTimer = useRef(null);
 
-  // Debounced re-apply for MutationObserver
-  const debounceRef = useRef(null);
-  const scheduleApply = useCallback(() => {
-    if (applying.current) return;
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      applying.current = true;
-      applyCache(cache.current);
-      // reset flag after microtasks flush
-      setTimeout(() => { applying.current = false; }, 0);
-    }, 120);
-  }, []);
-
-  // Start observer when English is active
+  // MutationObserver: watches for React re-renders reverting translated text,
+  // and for newly loaded Bengali content (e.g. chat messages from API).
   useEffect(() => {
     if (!isEnglish) return;
+
     const obs = new MutationObserver((mutations) => {
       if (applying.current) return;
-      const hasRelevant = mutations.some(
-        m => m.type === 'childList' || m.type === 'characterData'
-      );
-      if (hasRelevant) scheduleApply();
+
+      const newBengali = new Set(); // nodes with unseen Bengali text
+
+      applying.current = true;
+      mutations.forEach((m) => {
+        if (m.type === 'characterData') {
+          // React reverted one of our translated nodes back to Bengali
+          const text = (m.target.nodeValue || '').trim();
+          if (!text) return;
+          const t = cache.current[text];
+          if (t) {
+            // Re-apply immediately (sync)
+            setNodeTranslated(m.target, t);
+          } else if (BENGALI.test(text)) {
+            // New Bengali text we haven't seen — queue for translation
+            newBengali.add(m.target);
+          }
+        } else if (m.type === 'childList') {
+          m.addedNodes.forEach((added) => {
+            if (added.nodeType === Node.TEXT_NODE) {
+              const text = (added.nodeValue || '').trim();
+              if (!text) return;
+              const t = cache.current[text];
+              if (t) setNodeTranslated(added, t);
+              else if (BENGALI.test(text)) newBengali.add(added);
+            } else if (added.nodeType === Node.ELEMENT_NODE) {
+              // Newly inserted element — find its Bengali text nodes
+              const nodes = getBengaliNodes(added);
+              nodes.forEach((node) => {
+                const text = (node.nodeValue || '').trim();
+                const t = cache.current[text];
+                if (t) setNodeTranslated(node, t);
+                else newBengali.add(node);
+              });
+            }
+          });
+        }
+      });
+      // Reset flag after microtasks generated by our DOM writes have fired
+      setTimeout(() => { applying.current = false; }, 0);
+
+      // Async: translate new Bengali content (e.g. incoming chat messages)
+      if (newBengali.size > 0) {
+        clearTimeout(newContentTimer.current);
+        newContentTimer.current = setTimeout(async () => {
+          const texts = [...newBengali]
+            .map((n) => (n.nodeValue || '').trim())
+            .filter((t) => BENGALI.test(t));
+
+          await translateBatch(texts, cache.current);
+
+          applying.current = true;
+          newBengali.forEach((node) => {
+            const text = (node.nodeValue || '').trim();
+            const t = cache.current[text];
+            if (t) setNodeTranslated(node, t);
+          });
+          setTimeout(() => { applying.current = false; }, 0);
+        }, 400);
+      }
     });
+
     obs.observe(document.body, {
       childList: true,
       subtree: true,
       characterData: true,
     });
-    observerRef.current = obs;
+    obsRef.current = obs;
+
     return () => {
       obs.disconnect();
-      clearTimeout(debounceRef.current);
-      observerRef.current = null;
+      clearTimeout(newContentTimer.current);
+      obsRef.current = null;
     };
-  }, [isEnglish, scheduleApply]);
+  }, [isEnglish]);
 
   const activate = useCallback(async () => {
     setStatus('loading');
     try {
-      const nodes = walkTextNodes(document.body);
-      const unique = [...new Set(nodes.map(n => n.nodeValue?.trim()).filter(Boolean))];
-      await translateTexts(unique, cache.current);
+      const nodes = getBengaliNodes(document.body);
+      const texts = [...new Set(nodes.map((n) => (n.nodeValue || '').trim()).filter(Boolean))];
+
+      await translateBatch(texts, cache.current);
 
       applying.current = true;
-      applyCache(cache.current);
+      applyFromCache(nodes, cache.current);
       setTimeout(() => { applying.current = false; }, 0);
 
       setIsEnglish(true);
       setStatus('done');
     } catch (err) {
-      console.error('Translation failed:', err);
+      console.error('[Translate] activate error:', err);
       setStatus('error');
     }
   }, []);
 
   const restore = useCallback(() => {
-    observerRef.current?.disconnect();
-    observerRef.current = null;
-    clearTimeout(debounceRef.current);
-    // Reload to cleanly restore — DOM state is complex to manually revert
-    // across hundreds of dynamic React nodes
+    obsRef.current?.disconnect();
+    clearTimeout(newContentTimer.current);
+    // Clear cache so stale data doesn't interfere after restore
+    sessionStorage.removeItem(CACHE_KEY);
     window.location.reload();
   }, []);
 
