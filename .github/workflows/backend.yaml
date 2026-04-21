@@ -4,7 +4,8 @@ on:
   push:
     branches: [ "main" ]  # Trigger on push to the main branch
     paths:
-      - 'backend/**'      # Only run when files in the backend folder change
+      - 'backend/**'      # Run when backend files change
+      - '.github/workflows/backend.yaml'
   workflow_dispatch:      # Allows manual triggering
 
 permissions:
@@ -46,13 +47,34 @@ jobs:
 
       # Step 4: Create .env from GitHub Secrets
       - name: Create .env
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SSLCOMMERZ_STORE_ID: ${{ secrets.SSLCOMMERZ_STORE_ID }}
+          SSLCOMMERZ_STORE_PASSWORD: ${{ secrets.SSLCOMMERZ_STORE_PASSWORD }}
         run: |
-          echo "MONGO_URI=${{ secrets.MONGO_URI }}" > backend/.env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> backend/.env
-          echo "GEMINI_MODEL=gemini-flash-latest" >> backend/.env
-          echo "PORT=${{ env.APP_PORT }}" >> backend/.env
-          echo "NODE_ENV=${{ env.NODE_ENV }}" >> backend/.env
+          REQUIRED_VARS=(MONGO_URI JWT_SECRET SSLCOMMERZ_STORE_ID SSLCOMMERZ_STORE_PASSWORD)
+          for VAR_NAME in "${REQUIRED_VARS[@]}"; do
+            if [ -z "${!VAR_NAME}" ]; then
+              echo "::error::Missing required GitHub secret: ${VAR_NAME}"
+              exit 1
+            fi
+          done
+
+          cat > backend/.env <<EOF
+          MONGO_URI=${MONGO_URI}
+          JWT_SECRET=${JWT_SECRET}
+          GEMINI_API_KEY=${GEMINI_API_KEY}
+          GEMINI_MODEL=gemini-flash-latest
+          PORT=${{ env.APP_PORT }}
+          NODE_ENV=${{ env.NODE_ENV }}
+          FRONTEND_URL=https://cse-471-agri-network.vercel.app
+          BACKEND_PUBLIC_URL=https://agrinetwork.tanvirxen.com
+          SSLCOMMERZ_STORE_ID=${SSLCOMMERZ_STORE_ID}
+          SSLCOMMERZ_STORE_PASSWORD=${SSLCOMMERZ_STORE_PASSWORD}
+          SSLCOMMERZ_IS_LIVE=false
+          EOF
 
       # Step 5: Sync the backend code to the server directory
       - name: Sync code to /app/agrinetwork (root-owned)

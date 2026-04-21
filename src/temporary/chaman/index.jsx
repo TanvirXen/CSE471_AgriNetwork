@@ -486,16 +486,6 @@ function ChatNegotiationPage() {
     return () => clearInterval(callTimerRef.current);
   }, [callState.status]);
 
-  useEffect(() => {
-    finishCallRef.current = finishCall;
-  }, [finishCall]);
-
-  useEffect(() => {
-    if (callState.status !== "incoming") return;
-    const timer = setTimeout(() => finishCallRef.current?.("missed", true), 30000);
-    return () => clearTimeout(timer);
-  }, [callState.status]);
-
   const senderInitials = user?.fullName
     ? user.fullName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "You";
@@ -665,6 +655,16 @@ function ChatNegotiationPage() {
       fromUser: null,
     });
   }, [callState.callId, callState.targetUserId, resetCallResources, token]);
+
+  useEffect(() => {
+    finishCallRef.current = finishCall;
+  }, [finishCall]);
+
+  useEffect(() => {
+    if (callState.status !== "incoming") return;
+    const timer = setTimeout(() => finishCallRef.current?.("missed", true), 30000);
+    return () => clearTimeout(timer);
+  }, [callState.status]);
 
   const handleDeclineVideoCall = useCallback(async () => {
     await finishCall("declined", true);
