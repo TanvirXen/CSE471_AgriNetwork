@@ -39,6 +39,17 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+// Compatibility aliases for older frontend paths.
+app.get("/api/market-insights", (req, res, next) => {
+  req.url = "/insights";
+  marketRoutes(req, res, next);
+});
+
+app.post("/api/crop-plan/analyze", (req, res, next) => {
+  req.url = "/crop-plans";
+  marketRoutes(req, res, next);
+});
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
