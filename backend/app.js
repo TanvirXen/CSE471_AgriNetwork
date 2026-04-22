@@ -1,13 +1,14 @@
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const fileUpload = require("express-fileupload");
-const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes");
-const messageRoutes = require("./routes/messageRoutes");
+const express        = require("express");
+const cors           = require("cors");
+const path           = require("path");
+const fileUpload     = require("express-fileupload");
+
+const authRoutes      = require("./routes/authRoutes");
+const userRoutes      = require("./routes/userRoutes");
+const messageRoutes   = require("./routes/messageRoutes");
 const discoveryRoutes = require("./routes/discoveryRoutes");
-const escrowRoutes = require("./routes/escrowRoutes");
-const marketRoutes = require("./routes/marketRoutes");
+const escrowRoutes    = require("./routes/escrowRoutes");
+const marketRoutes    = require("./routes/marketRoutes");
 
 const app = express();
 
@@ -16,18 +17,28 @@ app.use(express.json());
 app.use(fileUpload());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Base Route
-app.get("/", (req, res) => {
-  res.send("AgriNetwork API is running...");
+// Base route
+app.get("/", (req, res) => res.send("AgriNetwork API is running..."));
+
+// ── Primary routes ──
+app.use("/api/auth",      authRoutes);
+app.use("/api/users",     userRoutes);
+app.use("/api/messages",  messageRoutes);
+app.use("/api/discovery", discoveryRoutes);
+app.use("/api/escrow",    escrowRoutes);
+app.use("/api/market",    marketRoutes);
+
+// ── URL alias fixes (frontend legacy calls) ──
+// Frontend SmartAgroMarket.jsx calls /api/market-insights → forward to /api/market/insights
+app.get("/api/market-insights", (req, res, next) => {
+  req.url = "/insights";
+  marketRoutes(req, res, next);
 });
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/messages", messageRoutes);
-app.use("/api/discovery", discoveryRoutes);
-app.use("/api/escrow", escrowRoutes);
-app.use("/api/market", marketRoutes);
+// Frontend SmartAgroMarket.jsx calls /api/crop-plan/analyze → forward to /api/market/crop-plans/analyze
+app.post("/api/crop-plan/analyze", (req, res, next) => {
+  req.url = "/crop-plans/analyze";
+  marketRoutes(req, res, next);
+});
 
 module.exports = app;
-

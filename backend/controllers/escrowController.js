@@ -1,43 +1,41 @@
 const Escrow = require("../models/Escrow");
-const Order = require("../models/Order");
+const Order  = require("../models/Order");
 
-// @route   GET /api/escrow/my
-// @desc    Get all escrows where user is buyer or seller
-// @access  Private
+
+// ─────────────────────────────────────────────
+// GET /api/escrow/my
+// ─────────────────────────────────────────────
 exports.getMyEscrows = async (req, res) => {
   try {
     const userId = req.user.id;
     const escrows = await Escrow.find({
       $or: [{ buyerId: userId }, { sellerId: userId }],
     })
-      .populate("buyerId", "fullName email profile.avatar")
+      .populate("buyerId",  "fullName email profile.avatar")
       .populate("sellerId", "fullName email profile.avatar")
       .sort({ createdAt: -1 });
 
     res.json(escrows);
   } catch (err) {
-    console.error(err.message);
+    console.error("[escrowController.getMyEscrows]", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// @route   GET /api/escrow/:id
-// @desc    Get escrow by ID
-// @access  Private
+// ─────────────────────────────────────────────
+// GET /api/escrow/:id
+// ─────────────────────────────────────────────
 exports.getEscrowById = async (req, res) => {
   try {
     const escrow = await Escrow.findById(req.params.id)
-      .populate("buyerId", "fullName email")
+      .populate("buyerId",  "fullName email")
       .populate("sellerId", "fullName email")
       .populate("orderId");
 
-    if (!escrow) {
-      return res.status(404).json({ message: "Escrow not found" });
-    }
+    if (!escrow) return res.status(404).json({ message: "Escrow not found" });
 
-    // Verify ownership
     if (
-      escrow.buyerId._id.toString() !== req.user.id &&
+      escrow.buyerId._id.toString()  !== req.user.id &&
       escrow.sellerId._id.toString() !== req.user.id
     ) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -50,36 +48,92 @@ exports.getEscrowById = async (req, res) => {
   }
 };
 
-// @route   PUT /api/escrow/:id/confirm
-// @desc    Confirm delivery and release funds
-// @access  Private (Buyer only)
+// ─────────────────────────────────────────────
+// POST /api/escrow   ← NEW: Create an escrow
+// ─────────────────────────────────────────────
+exports.createEscrow = async (req, res) => {
+  try {
+    const {
+      sellerId,
+      amountHeld,
+      product,
+      releaseCondition = "DeliveryConfirmed",
+      note,
+    } = req.body;
+
+    if (!sellerId || !amountHeld || !product) {
+      return res.status(400).json({
+        message: "sellerId, amountHeld, and product are required.",
+      });
+    }
+
+    if (sellerId === req.user.id) {
+      return res.status(400).json({ message: "Buyer and seller cannot be the same user." });
+    }
+
+    const mongoose = require("mongoose");
+    if (!mongoose.Types.ObjectId.isValid(sellerId)) {
+      return res.status(400).json({ message: "Invalid Seller User ID format." });
+    }
+
+    const amount  = parseFloat(amountHeld);
+    const feeAmt  = Math.round(amount * 0.01); // 1% platform fee
+
+    const newEscrow = new Escrow({
+      buyerId:          req.user.id,
+      sellerId,
+      amountHeld:       amount,
+      feeAmount:        feeAmt,
+      status:           "Funded",
+      releaseCondition,
+      product,
+      note:             note || "",
+      fundedAt:         new Date(),
+    });
+
+    console.log("[escrowController] Saving new escrow:", newEscrow);
+    await newEscrow.save();
+
+    // Use query populate for consistency
+    const savedEscrow = await Escrow.findById(newEscrow._id)
+      .populate("buyerId",  "fullName email profile.avatar")
+      .populate("sellerId", "fullName email profile.avatar");
+
+    res.status(201).json(savedEscrow);
+  } catch (err) {
+    console.error("[escrowController.createEscrow]", err.message);
+    if (err.name === 'CastError' || err.message.includes('Cast to ObjectId failed')) {
+      return res.status(400).json({ message: "Invalid ID format provided." });
+    }
+    res.status(500).json({ message: "Server error creating escrow" });
+  }
+};
+
+
+
+// ─────────────────────────────────────────────
+// PUT /api/escrow/:id/confirm
+// ─────────────────────────────────────────────
 exports.confirmDelivery = async (req, res) => {
   try {
     const escrow = await Escrow.findById(req.params.id);
+    if (!escrow) return res.status(404).json({ message: "Escrow not found" });
 
-    if (!escrow) {
-      return res.status(404).json({ message: "Escrow not found" });
-    }
-
-    // Only buyer can confirm delivery
     if (escrow.buyerId.toString() !== req.user.id) {
       return res.status(401).json({ message: "Only the buyer can confirm delivery" });
     }
-
     if (escrow.status !== "Funded") {
-      return res.status(400).json({ message: `Cannot confirm delivery in current status: ${escrow.status}` });
+      return res.status(400).json({ message: `Cannot confirm in status: ${escrow.status}` });
     }
 
-    escrow.status = "Released";
-    escrow.releasedAt = Date.now();
+    escrow.status        = "Released";
+    escrow.releasedAt    = new Date();
     escrow.releaseAmount = escrow.amountHeld;
     await escrow.save();
 
-    // Update corresponding order if exists
     if (escrow.orderId) {
       await Order.findByIdAndUpdate(escrow.orderId, {
-        status: "Delivered",
-        completedAt: Date.now(),
+        status: "Delivered", completedAt: new Date(),
       });
     }
 
@@ -90,28 +144,26 @@ exports.confirmDelivery = async (req, res) => {
   }
 };
 
-// @route   PUT /api/escrow/:id/dispute
-// @desc    Raise a dispute for an escrow
-// @access  Private
+// ─────────────────────────────────────────────
+// PUT /api/escrow/:id/dispute
+// ─────────────────────────────────────────────
 exports.raiseDispute = async (req, res) => {
   try {
     const { disputeReason } = req.body;
     const escrow = await Escrow.findById(req.params.id);
 
-    if (!escrow) {
-      return res.status(404).json({ message: "Escrow not found" });
-    }
+    if (!escrow) return res.status(404).json({ message: "Escrow not found" });
 
     if (
-      escrow.buyerId.toString() !== req.user.id &&
+      escrow.buyerId.toString()  !== req.user.id &&
       escrow.sellerId.toString() !== req.user.id
     ) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    escrow.status = "Disputed";
-    escrow.disputeOpened = true;
-    escrow.disputeReason = disputeReason;
+    escrow.status         = "Disputed";
+    escrow.disputeOpened  = true;
+    escrow.disputeReason  = disputeReason;
     await escrow.save();
 
     res.json(escrow);
@@ -121,13 +173,13 @@ exports.raiseDispute = async (req, res) => {
   }
 };
 
-// @route   POST /api/escrow/seed
-// @desc    Seed demo escrows
-// @access  Public (Dev only)
+// ─────────────────────────────────────────────
+// POST /api/escrow/seed  ← kept for compatibility
+// ─────────────────────────────────────────────
 exports.seedEscrows = async (req, res) => {
   try {
-    const User = require("../models/User");
-    const buyer = await User.findOne({ role: "Vendor" }) || await User.findOne();
+    const User   = require("../models/User");
+    const buyer  = await User.findOne({ role: "Vendor" }) || await User.findOne();
     const seller = await User.findOne({ role: "Farmer" }) || await User.findOne();
 
     if (!buyer || !seller) {
@@ -136,32 +188,31 @@ exports.seedEscrows = async (req, res) => {
 
     const demoEscrows = [
       {
-        orderId: new require("mongoose").Types.ObjectId(),
-        buyerId: buyer._id,
-        sellerId: seller._id,
-        amountHeld: 15000,
-        feeAmount: 150,
-        status: "Funded",
+        buyerId:          buyer._id,
+        sellerId:         seller._id,
+        amountHeld:       15000,
+        feeAmount:        150,
+        status:           "Funded",
+        product:          "Boro Rice (25 Bags)",
         releaseCondition: "DeliveryConfirmed",
-        fundedAt: new Date(),
+        fundedAt:         new Date(),
       },
       {
-        orderId: new require("mongoose").Types.ObjectId(),
-        buyerId: buyer._id,
-        sellerId: seller._id,
-        amountHeld: 8000,
-        feeAmount: 80,
-        status: "Released",
+        buyerId:          buyer._id,
+        sellerId:         seller._id,
+        amountHeld:       8000,
+        feeAmount:        80,
+        status:           "Released",
+        product:          "Tomato (100 kg)",
         releaseCondition: "DeliveryConfirmed",
-        fundedAt: new Date(Date.now() - 86400000 * 5),
-        releasedAt: new Date(),
-        releaseAmount: 8000,
-      }
+        fundedAt:         new Date(Date.now() - 86400000 * 5),
+        releasedAt:       new Date(),
+        releaseAmount:    8000,
+      },
     ];
 
     await Escrow.deleteMany({});
     const created = await Escrow.insertMany(demoEscrows);
-
     res.json({ message: "Escrows seeded", count: created.length });
   } catch (err) {
     console.error(err.message);
