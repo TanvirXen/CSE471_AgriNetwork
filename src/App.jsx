@@ -29,6 +29,15 @@ function App() {
           <li>
             <Link to="/sumaiya/OrderHistory">Sumaiya OrderHistory</Link>
           </li>
+          <li>
+            <Link to="/dashboard/smart-agromarket">Smart AgroMarket</Link>
+          </li>
+          <li>
+            <Link to="/dashboard/escrow">Escrow Dashboard</Link>
+          </li>
+          <li>
+            <Link to="/dashboard/payment">Payment Page</Link>
+          </li>
         </ul>
       </nav>
     </main>

@@ -1,27 +1,29 @@
-const express = require('express');
+const express = require("express");
+const authenticate = require("../middleware/auth");
+const marketController = require("../controllers/marketController");
+
 const router = express.Router();
-const { getProducts, addProduct, getStreams, addStream, getStreamById, addChatMessage, endStream } = require('../controllers/marketController');
 
-// Product routes
-router.route('/products')
-    .get(getProducts)
-    .post(addProduct);
+router.route("/products")
+    .get(marketController.getProducts)
+    .post(marketController.addProduct);
 
-// Stream routes
-router.route('/streams')
-    .get(getStreams)
-    .post(addStream);
+router.route("/streams")
+    .get(marketController.getStreams)
+    .post(marketController.addStream);
 
-// Single stream route
-router.route('/streams/:id')
-    .get(getStreamById);
+router.route("/streams/:id")
+    .get(marketController.getStreamById);
 
-// Stream chat
-router.route('/streams/:id/chat')
-    .post(addChatMessage);
+router.route("/streams/:id/chat")
+    .post(marketController.addChatMessage);
 
-// End stream
-router.route('/streams/:id/end')
-    .post(endStream);
+router.route("/streams/:id/end")
+    .post(marketController.endStream);
+
+router.get("/insights", marketController.getMarketInsights);
+router.get("/crop-plans", authenticate, marketController.getCropPlans);
+router.post("/crop-plans", authenticate, marketController.createCropPlan);
+router.post("/seed", marketController.seedMarketData);
 
 module.exports = router;

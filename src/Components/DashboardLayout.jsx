@@ -15,6 +15,9 @@ import {
   Map,
   Settings,
   Bot,
+  Shield,
+  Sprout,
+  CreditCard,
 } from 'lucide-react';
 import '../CSS/Dashboard.css';
 
@@ -44,6 +47,9 @@ const DashboardLayout = () => {
     { name: 'Crop Marketplace', path: '/crop-marketplace', icon: <ShoppingBag size={20} /> },
     { name: 'My Profile', path: '/dashboard/profile', icon: <UserCircle size={20} /> },
     { name: 'AI Advisor', path: '/dashboard/chatbot', icon: <Bot size={20} /> },
+    { name: 'Smart AgroMarket', path: '/dashboard/smart-agromarket', icon: <Sprout size={20} /> },
+    { name: 'Escrow', path: '/dashboard/escrow', icon: <Shield size={20} /> },
+    { name: 'Payment', path: '/dashboard/payment', icon: <CreditCard size={20} /> },
     { name: 'Orders', path: '/dashboard/orders', icon: <ShoppingBag size={20} /> },
     { name: 'Messages', path: '/dashboard/messages', icon: <MessageSquare size={20} /> },
     { name: 'AgriDiscovery Map', path: '/dashboard/map', icon: <Map size={20} /> },

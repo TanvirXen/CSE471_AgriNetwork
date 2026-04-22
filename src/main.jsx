@@ -21,6 +21,9 @@ import DashboardLayout from './Components/DashboardLayout'
 import DashboardOverview from './Pages/DashboardOverview'
 import DashboardProfile from './Pages/DashboardProfile'
 import ChatbotPage from './Pages/ChatbotPage'
+import SmartAgroMarket from './temporary/chaman/SmartAgroMarket'
+import EscrowDashboard from './temporary/chaman/EscrowDashboard'
+import PaymentPage from './temporary/chaman/PaymentPage'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import ProtectedRoute from './Components/ProtectedRoute'
@@ -73,6 +76,9 @@ createRoot(document.getElementById('root')).render(
               <Route index element={<DashboardOverview />} />
               <Route path="profile" element={<DashboardProfile />} />
               <Route path="chatbot" element={<ChatbotPage />} />
+              <Route path="smart-agromarket" element={<SmartAgroMarket />} />
+              <Route path="escrow" element={<EscrowDashboard />} />
+              <Route path="payment" element={<PaymentPage />} />
               <Route path="orders" element={<OrderHistory />} />
               <Route path="messages" element={<ChamanPage />} />
               <Route path="map" element={<SearchMapPage />} />
