@@ -1,22 +1,21 @@
-const express = require("express");
-const router = express.Router();
-const marketController = require("../controllers/marketController");
-const authenticate = require("../middleware/auth");
+const express  = require("express");
+const router   = express.Router();
+const ctrl     = require("../controllers/marketController");
+const auth     = require("../middleware/auth");
 
-// @route   GET /api/market/insights
-// @desc    Get market trends
-router.get("/insights", marketController.getMarketInsights);
+// GET  /api/market/insights              — Live dynamic market insights (no seed needed)
+router.get("/insights",                   ctrl.getMarketInsights);
 
-// @route   GET /api/market/crop-plans
-// @desc    Get user's plans
-router.get("/crop-plans", authenticate, marketController.getCropPlans);
+// GET  /api/market/crop-plans            — User's saved crop plans
+router.get("/crop-plans",                 auth, ctrl.getCropPlans);
 
-// @route   POST /api/market/crop-plans
-// @desc    Create AI crop plan
-router.post("/crop-plans", authenticate, marketController.createCropPlan);
+// POST /api/market/crop-plans            — Create AI crop plan (saves to DB if logged in)
+router.post("/crop-plans",                auth, ctrl.createCropPlan);
 
-// @route   POST /api/market/seed
-// @desc    Seed insights
-router.post("/seed", marketController.seedMarketData);
+// POST /api/market/crop-plans/analyze    — Alias: same logic, no auth required (frontend uses this)
+router.post("/crop-plans/analyze",        ctrl.createCropPlan);
+
+// POST /api/market/seed                  — Dev compat (now a no-op)
+router.post("/seed",                      ctrl.seedMarketData);
 
 module.exports = router;

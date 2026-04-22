@@ -9,6 +9,13 @@ const messageRoutes   = require("./routes/messageRoutes");
 const discoveryRoutes = require("./routes/discoveryRoutes");
 const escrowRoutes    = require("./routes/escrowRoutes");
 const marketRoutes    = require("./routes/marketRoutes");
+const paymentRoutes   = require("./routes/paymentRoutes");
+const orderRoutes     = require("./routes/orderRoutes");
+const deliveryRoutes  = require("./routes/deliveryRoutes");
+const reviewRoutes    = require("./routes/reviewRoutes");
+const adminRoutes     = require("./routes/adminRoutes");
+const listingRoutes   = require("./routes/listingRoutes");
+const buyRequestRoutes = require("./routes/buyRequestRoutes");
 
 const app = express();
 
@@ -27,6 +34,13 @@ app.use("/api/messages",  messageRoutes);
 app.use("/api/discovery", discoveryRoutes);
 app.use("/api/escrow",    escrowRoutes);
 app.use("/api/market",    marketRoutes);
+app.use("/api/payments",  paymentRoutes);
+app.use("/api/orders",    orderRoutes);
+app.use("/api/deliveries", deliveryRoutes);
+app.use("/api/reviews",   reviewRoutes);
+app.use("/api/admin",     adminRoutes);
+app.use("/api/listings",  listingRoutes);
+app.use("/api/buy-requests", buyRequestRoutes);
 
 // ── URL alias fixes (frontend legacy calls) ──
 // Frontend SmartAgroMarket.jsx calls /api/market-insights → forward to /api/market/insights

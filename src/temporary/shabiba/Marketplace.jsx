@@ -34,11 +34,39 @@ const PRODUCTS_DATA = [
 ];
 
 const Marketplace = () => {
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [biddingProduct, setBiddingProduct] = useState(null);
 
-    const filteredProducts = PRODUCTS_DATA.filter(p => {
+    React.useEffect(() => {
+        const fetchAllProducts = async () => {
+            try {
+                setLoading(true);
+                const res = await fetch('/api/listings/all');
+                const data = await res.json();
+                if (data.success) {
+                    setProducts(data.listings.map(p => ({
+                        id: p._id,
+                        name: p.productName || p.title,
+                        category: p.categoryType?.toLowerCase() || 'crops',
+                        price: p.pricing?.unitPrice || 0,
+                        quality: p.grade || 'A',
+                        image: (p.media && p.media[0]?.url) || p.image || "https://picsum.photos/400/300?random=1",
+                        tag: p.pricing?.mode || "Fixed"
+                    })));
+                }
+            } catch (err) {
+                console.error("Marketplace fetch error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAllProducts();
+    }, []);
+
+    const filteredProducts = products.filter(p => {
         const matchesCategory = activeCategory === 'all' || p.category === activeCategory;
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCategory && matchesSearch;

@@ -71,7 +71,9 @@ const STATUS_COLORS = {
 };
 
 const OrderHistory = () => {
-  const [orders, setOrders] = useState(MOCK_ORDERS);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterDate, setFilterDate] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
@@ -80,11 +82,54 @@ const OrderHistory = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
+  // Fetch orders from API
+  React.useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/orders', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          // Map backend orders to frontend format
+          const mappedOrders = (data || []).map(order => ({
+            id: order.orderNumber || order._id,
+            rawId: order._id,
+            date: order.createdAt,
+            status: order.status,
+            total: order.pricing?.total || 0,
+            items: (order.items || []).map(item => ({
+              name: item.productName || 'Agri Product',
+              quantity: `${item.quantity} ${item.unit || 'kg'}`,
+              price: item.price
+            })),
+            invoiceUrl: `/api/invoices/${order._id}`
+          }));
+          setOrders(mappedOrders);
+        } else {
+          setError(data.message || 'Failed to fetch orders');
+        }
+      } catch (err) {
+        setError('Connection error. Please try again.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
   // Filtering Logic
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
       const matchStatus = filterStatus === 'All' || order.status === filterStatus;
-      const matchDate = filterDate === '' || order.date === filterDate;
+      const matchDate = filterDate === '' || order.date.startsWith(filterDate);
       const matchSearch = filterSearch === '' ||
         order.id.toLowerCase().includes(filterSearch.toLowerCase()) ||
         order.items.some(item => item.name.toLowerCase().includes(filterSearch.toLowerCase()));
@@ -95,20 +140,44 @@ const OrderHistory = () => {
 
   const handleDownloadInvoice = (e, orderId) => {
     e.stopPropagation();
-    // Simulate Download
-    setToastMessage(`Downloading invoice for ${orderId}...`);
-    setTimeout(() => setToastMessage(''), 3000);
+    // Simulate Download or redirect to API
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+        window.open(order.invoiceUrl, '_blank');
+        setToastMessage(`Opening invoice for ${orderId}...`);
+        setTimeout(() => setToastMessage(''), 3000);
+    }
   };
 
-  const handleCancelSubmit = (orderId, reason) => {
-    // Update order status purely in UI state
-    setOrders(prev => prev.map(o =>
-      o.id === orderId ? { ...o, status: 'Cancelled' } : o
-    ));
-    setShowCancelModal(false);
-    setSelectedOrder(null);
-    setToastMessage('Cancellation request submitted successfully.');
-    setTimeout(() => setToastMessage(''), 3000);
+  const handleCancelSubmit = async (orderId, reason) => {
+    try {
+      const order = orders.find(o => o.id === orderId);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/orders/${order.rawId}/cancel`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ reason })
+      });
+
+      if (res.ok) {
+        setOrders(prev => prev.map(o =>
+          o.id === orderId ? { ...o, status: 'Cancelled' } : o
+        ));
+        setShowCancelModal(false);
+        setSelectedOrder(null);
+        setToastMessage('Cancellation request submitted successfully.');
+      } else {
+        const data = await res.json();
+        setToastMessage(data.message || 'Failed to cancel order');
+      }
+    } catch (err) {
+      setToastMessage('Error connecting to server.');
+    } finally {
+      setTimeout(() => setToastMessage(''), 3000);
+    }
   };
 
   return (
