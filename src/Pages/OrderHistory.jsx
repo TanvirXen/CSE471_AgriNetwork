@@ -1,11 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, Filter, X, Download, Package, FileText, AlertCircle } from 'lucide-react';
+import { Search, Calendar, Filter, X, Download, Package, FileText, AlertCircle, Star } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../CSS/OrderHistory.css';
 import OrderTimeline from '../Components/OrderTimeline';
 import CancelRefundModal from '../Components/CancelRefundModal';
+import DeliveryTrackingMap from '../Components/DeliveryTrackingMap';
+import ReviewModal from '../Components/ReviewModal';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -22,6 +25,7 @@ const OrderHistory = () => {
   const location = useLocation();
   const isDashboardRoute = location.pathname.startsWith('/dashboard');
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const [orders, setOrders] = useState([]);
   const [filterStatus, setFilterStatus] = useState('All');
@@ -29,12 +33,42 @@ const OrderHistory = () => {
   const [filterSearch, setFilterSearch] = useState('');
 
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedDelivery, setSelectedDelivery] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
+  const [customerOTP, setCustomerOTP] = useState('');
+  const [customerPhoto, setCustomerPhoto] = useState(null);
+  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
+
+  const [showRidersModal, setShowRidersModal] = useState(false);
+  const [nearbyRiders, setNearbyRiders] = useState([]);
+  const [isLoadingRiders, setIsLoadingRiders] = useState(false);
+  const [selectedRiderId, setSelectedRiderId] = useState('');
+
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewOrder, setReviewOrder] = useState(null);
+
+  useEffect(() => {
+    let intervalId;
+    if (user) {
+      fetchOrders();
+      intervalId = setInterval(fetchOrders, 5000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [user]);
+
   const fetchOrders = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/orders?buyerId=${user?._id || user?.id}`);
+      let fetchUrl = `${API_BASE_URL}/api/orders?buyerId=${user?._id || user?.id}`;
+      // Use vendorId filter if user is vendor or farmer
+      if (user?.role?.toLowerCase() === 'vendor' || user?.role?.toLowerCase() === 'farmer') {
+         fetchUrl = `${API_BASE_URL}/api/orders?vendorId=${user?._id || user?.id}`;
+      }
+      
+      const res = await fetch(fetchUrl);
       const data = await res.json();
       if (Array.isArray(data)) {
          // Sort orders descending by createdAt
@@ -52,17 +86,106 @@ const OrderHistory = () => {
     }
   };
 
-  useEffect(() => {
-    let intervalId;
-    if (user) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchOrders(); // async — setState calls happen after await, not synchronously
-      intervalId = setInterval(fetchOrders, 5000);
+  const handleUpdateStatus = async (orderId, newStatus, extraData = {}) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus, ...extraData })
+      });
+      if (res.ok) {
+        const orderData = await res.json();
+        setOrders(prev => prev.map(o => o._id === orderId ? orderData : o));
+        setSelectedOrder(orderData);
+        setToastMessage(`Order status updated to ${newStatus}`);
+        
+        // Refetch delivery details to pull latest OSRM routes securely and any updated status
+        const delRes = await fetch(`${API_BASE_URL}/api/delivery/${orderId}`);
+        if(delRes.ok){
+          const delData = await delRes.json();
+          setSelectedDelivery(delData);
+        }
+
+      } else {
+        const errData = await res.json();
+        setToastMessage(errData.message || 'Failed to update status.');
+      }
+    } catch(err) {
+      console.error(err);
+      setToastMessage('Error updating status.');
     }
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const handleCustomerSubmitProof = async (orderId) => {
+    if (!customerOTP || !customerPhoto) {
+      setToastMessage('Please provide both OTP and a photo.');
+      setTimeout(() => setToastMessage(''), 3000);
+      return;
+    }
+    setIsSubmittingProof(true);
+    const formData = new FormData();
+    formData.append('otp', customerOTP);
+    formData.append('photo', customerPhoto);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}/customer-proof`, {
+        method: 'PUT',
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(prev => prev.map(o => o._id === orderId ? data.order : o));
+        setSelectedOrder(data.order);
+        setToastMessage('Proof submitted successfully!');
+      } else {
+        const errData = await res.json();
+        setToastMessage(errData.message || 'Failed to submit proof.');
+      }
+    } catch(err) {
+      console.error(err);
+      setToastMessage('Error submitting proof.');
+    }
+    setIsSubmittingProof(false);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const handleOpenRidersModal = async () => {
+    setShowRidersModal(true);
+    setIsLoadingRiders(true);
+    try {
+      let lng = 90.4125;
+      let lat = 23.8103;
+      if (user?.currentLocation?.coordinates && user.currentLocation.coordinates.length === 2 && user.currentLocation.coordinates[0] !== 0) {
+        lng = user.currentLocation.coordinates[0];
+        lat = user.currentLocation.coordinates[1];
+      }
+      const res = await fetch(`${API_BASE_URL}/api/riders/nearby?lng=${lng}&lat=${lat}`);
+      if (res.ok) {
+        const data = await res.json();
+        setNearbyRiders(data);
+      }
+    } catch(err) {
+      console.error(err);
+    }
+    setIsLoadingRiders(false);
+  };
+
+  const handleSelectOrder = async (order) => {
+    setSelectedOrder(order);
+    setSelectedDelivery(null);
+    setCustomerOTP('');
+    setCustomerPhoto(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/${order._id}`);
+      if (res.ok) {
+        const delData = await res.json();
+        setSelectedDelivery(delData);
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  };
 
   // Filtering Logic
   const filteredOrders = useMemo(() => {
@@ -247,7 +370,7 @@ const OrderHistory = () => {
                 <motion.div
                   key={order._id}
                   className="order-card"
-                  onClick={() => setSelectedOrder(order)}
+                  onClick={() => handleSelectOrder(order)}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -356,6 +479,49 @@ const OrderHistory = () => {
                 <h3 style={{ fontSize: '1.125rem', color: 'var(--primary-dark)', marginBottom: '1rem' }}>Delivery Progress</h3>
                 <OrderTimeline status={selectedOrder.status} />
 
+                {selectedOrder.deliveryAddress && (
+                  <div style={{ padding: '1rem', background: '#f3f4f6', borderRadius: '8px', marginBottom: '1rem' }}>
+                    <strong>Delivery Address:</strong> {selectedOrder.deliveryAddress.fullAddress} 
+                    {selectedOrder.deliveryAddress.district && `, ${selectedOrder.deliveryAddress.district}`} 
+                    {selectedOrder.deliveryAddress.division && `, ${selectedOrder.deliveryAddress.division}`} <br/>
+                    <strong>Contact:</strong> {selectedOrder.deliveryAddress.contactName} ({selectedOrder.deliveryAddress.phone})
+                  </div>
+                )}
+
+                {selectedOrder.pickupDate && (
+                  <div style={{ padding: '1rem', background: '#f3f4f6', borderRadius: '8px', marginBottom: '1rem' }}>
+                    <strong>Scheduled Pickup:</strong> {new Date(selectedOrder.pickupDate).toLocaleDateString()} ({selectedOrder.pickupTimeSlot})
+                  </div>
+                )}
+
+                {selectedDelivery && selectedDelivery.logisticsStatus === "InTransit" && (
+                   <div style={{ padding: '1rem', background: '#eff6ff', color: '#1d4ed8', borderRadius: '8px', marginBottom: '1rem', border: '1px solid #bfdbfe' }}>
+                     <strong>Delivery In Transit!</strong> Please provide this OTP to the vendor: 
+                     <span style={{ fontSize: '1.2rem', fontWeight: 'bold', marginLeft: '8px', tracking: '2px' }}>
+                       {selectedDelivery.otpCodeHash}
+                     </span>
+                   </div>
+                )}
+
+                {(() => {
+                  if (!selectedDelivery) return null;
+                  let parsedGeojson = null;
+                  if (selectedDelivery.routePolyline && selectedDelivery.routePolyline !== "null") {
+                    try {
+                      parsedGeojson = JSON.parse(selectedDelivery.routePolyline);
+                    } catch(e) {
+                      console.error("Failed to parse routePolyline", e);
+                    }
+                  }
+                  
+                  return (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <h3 style={{ fontSize: '1.125rem', color: 'var(--primary-dark)', marginBottom: '0.5rem' }}>Live Tracking</h3>
+                      <DeliveryTrackingMap geojsonGeometry={parsedGeojson} />
+                    </div>
+                  );
+                })()}
+
                 {/* Items */}
                 <div className="modal-items">
                   <h3>Purchased Items</h3>
@@ -391,7 +557,7 @@ const OrderHistory = () => {
                     </div>
                   )}
 
-                  {['Pending', 'Confirmed', 'Processing'].includes(selectedOrder.status) && (
+                  {['Pending'].includes(selectedOrder.status) && (!user?.role || user?.role?.toLowerCase() === 'customer') && (
                     <button
                       className="btn btn-danger"
                       onClick={() => { setSelectedOrder(null); setShowCancelModal(true); }}
@@ -400,9 +566,112 @@ const OrderHistory = () => {
                     </button>
                   )}
 
+                  {selectedOrder.status === 'Delivered' && (!user?.role || user?.role?.toLowerCase() === 'customer') && (
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => { setReviewOrder(selectedOrder); setShowReviewModal(true); }}
+                      style={{ backgroundColor: '#f59e0b', borderColor: '#f59e0b' }}
+                    >
+                      <Star size={18} /> Rate & Review Vendor
+                    </button>
+                  )}
+
                   {['Cancelled', 'Refunded', 'RefundRequested'].includes(selectedOrder.status) && (
-                    <div style={{ textAlign: 'center', color: '#dc2626', backgroundColor: '#fef2f2', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+                    <div style={{ textAlign: 'center', color: '#dc2626', backgroundColor: '#fef2f2', padding: '1rem', borderRadius: '8px', marginTop: '1rem', width: '100%' }}>
                       This order was cancelled or refunded. Reason: {selectedOrder.cancellationReason || "Customer Requested"}
+                    </div>
+                  )}
+
+                  {selectedOrder.status === 'OutForDelivery' && (!user?.role || user?.role?.toLowerCase() === 'customer') && !selectedOrder.customerSubmittedOTP && (
+                    <div style={{ width: '100%', marginTop: '1rem', padding: '1rem', backgroundColor: '#f0fdfa', borderRadius: '8px', border: '1px solid #ccfbf1' }}>
+                       <h4 style={{ color: '#0f766e', marginBottom: '0.5rem' }}>Verify Delivery Receipt</h4>
+                       <p style={{ fontSize: '0.9rem', marginBottom: '1rem', color: '#134e4a' }}>Your system delivery pin is <strong>{selectedOrder.otp}</strong>. Please enter it below and upload a photo of the received goods to complete the delivery.</p>
+                       <input 
+                         type="text" 
+                         placeholder="Enter OTP" 
+                         value={customerOTP}
+                         onChange={(e) => setCustomerOTP(e.target.value)}
+                         style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                       />
+                       <input 
+                         type="file" 
+                         accept="image/*"
+                         onChange={(e) => setCustomerPhoto(e.target.files[0])}
+                         style={{ width: '100%', padding: '0.5rem', marginBottom: '1rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: 'white' }}
+                       />
+                       <button 
+                         className="btn" 
+                         style={{ backgroundColor: '#0d9488', color: 'white', width: '100%' }}
+                         onClick={(e) => { e.stopPropagation(); handleCustomerSubmitProof(selectedOrder._id); }}
+                         disabled={isSubmittingProof}
+                       >
+                         {isSubmittingProof ? 'Sending...' : 'Send Proof to Vendor'}
+                       </button>
+                    </div>
+                  )}
+                  {selectedOrder.status === 'OutForDelivery' && (!user?.role || user?.role?.toLowerCase() === 'customer') && selectedOrder.customerSubmittedOTP && (
+                    <div style={{ width: '100%', marginTop: '1rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                       <p style={{ color: '#475569', margin: 0 }}>You have submitted your delivery proof. Waiting for vendor verification...</p>
+                    </div>
+                  )}
+
+                  {(user?.role?.toLowerCase() === 'vendor' || user?.role?.toLowerCase() === 'farmer') && (
+                    <div style={{ width: '100%', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #eee', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                       {selectedOrder.status === 'Pending' && (
+                         <button className="btn" style={{ backgroundColor: 'var(--primary-main)', color: 'white', width: '100%' }} onClick={(e) => {
+                           e.stopPropagation();
+                           handleUpdateStatus(selectedOrder._id, 'Confirmed');
+                         }}>
+                            Confirm Order
+                         </button>
+                       )}
+                       {selectedOrder.status === 'Confirmed' && (
+                         <button className="btn" style={{ backgroundColor: '#eab308', color: 'white', width: '100%' }} onClick={(e) => {
+                           e.stopPropagation();
+                           handleOpenRidersModal();
+                         }}>
+                            Processing Completed (Assign Rider)
+                         </button>
+                       )}
+                       {(selectedOrder.status === 'Processing' || selectedOrder.status === 'Shipped') && (
+                         <button className="btn" style={{ backgroundColor: '#2563eb', color: 'white', width: '100%' }} onClick={(e) => {
+                           e.stopPropagation();
+                           handleUpdateStatus(selectedOrder._id, 'OutForDelivery');
+                         }}>
+                            Start Delivery
+                         </button>
+                       )}
+                       
+                       {selectedOrder.status === 'OutForDelivery' && (
+                         <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '0.5rem' }}>
+                           <h4 style={{ color: '#334155', marginBottom: '1rem' }}>Customer Proof Verification</h4>
+                           {!selectedOrder.customerSubmittedOTP ? (
+                              <p style={{ color: '#64748b', fontSize: '0.9rem', fontStyle: 'italic' }}>Waiting for customer to submit OTP and photo proof...</p>
+                           ) : (
+                              <div style={{ textAlign: 'left' }}>
+                                <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}><strong>Expected OTP:</strong> {selectedOrder.otp}</p>
+                                <p style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>
+                                   <strong>Submitted OTP:</strong> 
+                                   <span style={{ color: selectedOrder.otp === selectedOrder.customerSubmittedOTP ? '#16a34a' : '#dc2626', fontWeight: 'bold', marginLeft: '4px' }}>
+                                      {selectedOrder.customerSubmittedOTP}
+                                   </span>
+                                </p>
+                                {selectedOrder.customerSubmittedPhoto && (
+                                   <div style={{ marginBottom: '1rem' }}>
+                                     <strong style={{ fontSize: '0.9rem' }}>Delivery Photo:</strong>
+                                     <img src={selectedOrder.customerSubmittedPhoto} alt="Customer Proof" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', marginTop: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                                   </div>
+                                )}
+                                <button className="btn" style={{ backgroundColor: '#16a34a', color: 'white', width: '100%' }} onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateStatus(selectedOrder._id, 'Delivered');
+                                }}>
+                                   Confirm & Mark as Delivered
+                                </button>
+                              </div>
+                           )}
+                         </div>
+                       )}
                     </div>
                   )}
                 </div>
@@ -419,6 +688,78 @@ const OrderHistory = () => {
         onClose={() => setShowCancelModal(false)}
         order={selectedOrder || (showCancelModal ? orders.find(o => ['Pending', 'Confirmed'].includes(o.status)) : null)} 
         onSubmit={handleCancelSubmit}
+      />
+
+      {/* Nearby Riders Modal */}
+      <AnimatePresence>
+        {showRidersModal && (
+          <div className="modal-overlay" onClick={() => setShowRidersModal(false)}>
+            <motion.div
+              className="modal-content"
+              onClick={e => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <div className="modal-header">
+                <h2>Assign Delivery Rider</h2>
+                <button className="modal-close-btn" onClick={() => setShowRidersModal(false)}><X size={20} /></button>
+              </div>
+              <div className="modal-body">
+                {isLoadingRiders ? (
+                  <p>Finding nearby riders...</p>
+                ) : nearbyRiders.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {nearbyRiders.map((rider) => (
+                      <div 
+                        key={rider._id} 
+                        onClick={() => setSelectedRiderId(rider._id)}
+                        style={{ 
+                          padding: '1rem', 
+                          border: `2px solid ${selectedRiderId === rider._id ? 'var(--primary-main)' : '#e5e7eb'}`, 
+                          borderRadius: '8px', 
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <div>
+                          <strong>{rider.name}</strong>
+                          <div style={{ fontSize: '0.875rem', color: '#64748b' }}>{rider.vehicleType} &bull; {rider.phone}</div>
+                        </div>
+                        <div style={{ color: 'var(--primary-main)' }}>Select</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>No riders available nearby. An automated partner will be assigned if you proceed.</p>
+                )}
+                
+                <button 
+                  className="btn btn-primary" 
+                  style={{ width: '100%', marginTop: '1.5rem' }}
+                  onClick={() => {
+                     handleUpdateStatus(selectedOrder._id, 'Shipped', { riderId: selectedRiderId });
+                     setShowRidersModal(false);
+                  }}
+                >
+                  Save & Mark as Shipped
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <ReviewModal 
+         isOpen={showReviewModal}
+         onClose={() => setShowReviewModal(false)}
+         order={reviewOrder}
+         onReviewSubmitted={() => {
+           setToastMessage('Thank you! Your verified review has been published.');
+           setTimeout(() => setToastMessage(''), 3000);
+         }}
       />
 
       {/* Toast Notification */}

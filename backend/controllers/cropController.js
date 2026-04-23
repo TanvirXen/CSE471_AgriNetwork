@@ -66,7 +66,33 @@ exports.filterCrops = async (req, res) => {
     if (moisturePercentage) filter.moisturePercentage = moisturePercentage;
 
     const crops = await FarmerListing.find(filter)
-      .populate("sellerId", "fullName phone");
+      .populate("sellerId", "fullName phone profile")
+      .populate("vendorId", "fullName phone profile");
+
+    // Self-healing block for legacy dummy crops
+    const Review = require("../models/Review");
+    await Promise.all(crops.map(async (doc) => {
+      let currentReviews = typeof doc.totalReviews === 'number' ? doc.totalReviews : 0;
+      if (currentReviews === 0) {
+        const existingReviews = await Review.find({ productId: doc._id, moderationStatus: { $ne: "deleted" } });
+        if (existingReviews.length > 0) {
+          currentReviews = existingReviews.length;
+          let sum = 0;
+          existingReviews.forEach(r => sum += r.averageRating);
+          let currentRating = sum / currentReviews;
+          let currentTrust = Math.min(100, currentRating * Math.log(currentReviews + 1) * 10);
+          
+          doc.averageRating = currentRating;
+          doc.totalReviews = currentReviews;
+          doc.trustScore = currentTrust;
+          
+          await FarmerListing.findByIdAndUpdate(doc._id, {
+            $set: { averageRating: currentRating, totalReviews: currentReviews, trustScore: currentTrust }
+          });
+        }
+      }
+    }));
+
     res.json(crops);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -177,7 +203,7 @@ exports.getHarvestCalendar = async (req, res) => {
 // SPOTLIGHT
 exports.getSpotlight = async (req, res) => {
     try {
-      const crops = await FarmerListing.find({ isActive: true });
+      const crops = await FarmerListing.find({ isActive: true }).populate("sellerId", "fullName phone profile");
   
       // group by region
       const regionMap = {};
@@ -252,9 +278,28 @@ exports.getCropById = async (req, res) => {
         req.params.id,
         { $inc: { viewCount: 1 } },   
         { new: true }
-      ).populate("sellerId", "fullName phone profile.avatar");
+      ).populate("sellerId", "fullName phone profile").populate("vendorId", "fullName phone profile");
 
-    if (!crop) return res.status(404).json({ message: "Crop not found" });
+    let currentRating = typeof crop.averageRating === 'number' ? crop.averageRating : 0;
+    let currentReviews = typeof crop.totalReviews === 'number' ? crop.totalReviews : 0;
+    let currentTrust = typeof crop.trustScore === 'number' ? crop.trustScore : 0;
+
+    if (currentReviews === 0) {
+      const Review = require("../models/Review");
+      const existingReviews = await Review.find({ productId: crop._id, moderationStatus: { $ne: "deleted" } });
+      if (existingReviews.length > 0) {
+        currentReviews = existingReviews.length;
+        let sum = 0;
+        existingReviews.forEach(r => sum += r.averageRating);
+        currentRating = sum / currentReviews;
+        currentTrust = Math.min(100, currentRating * Math.log(currentReviews + 1) * 10);
+        
+        // Sync to DB
+        await FarmerListing.findByIdAndUpdate(crop._id, {
+          $set: { averageRating: currentRating, totalReviews: currentReviews, trustScore: currentTrust }
+        });
+      }
+    }
 
     const formattedCrop = {
       id: crop._id,
@@ -275,10 +320,17 @@ exports.getCropById = async (req, res) => {
         price: t.pricePerUnit
       })),
       harvestDate: 'N/A',
+      averageRating: currentRating,
+      totalReviews: currentReviews,
+      trustScore: currentTrust,
       image: crop.media && crop.media.length > 0 ? crop.media[0].url : 'https://placehold.co/400x300?text=No+Image',
-      seller: crop.sellerId ? {
-        name: crop.sellerId.fullName,
-        phone: crop.sellerId.phone
+      seller: (crop.sellerId || crop.vendorId) ? {
+        _id: crop.sellerId?._id || crop.vendorId?._id,
+        name: crop.sellerId?.fullName || crop.vendorId?.fullName,
+        phone: crop.sellerId?.phone || crop.vendorId?.phone,
+        averageRating: crop.sellerId?.profile?.averageRating || crop.vendorId?.profile?.averageRating || 0,
+        trustScore: crop.sellerId?.profile?.trustScore || crop.vendorId?.profile?.trustScore || 0,
+        totalReviews: crop.sellerId?.profile?.totalReviews || crop.vendorId?.profile?.totalReviews || 0
       } : { name: "Verified Seller", phone: "Contact via platform" }
     };
 

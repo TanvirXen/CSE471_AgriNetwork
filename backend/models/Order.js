@@ -21,6 +21,7 @@ const StatusHistorySchema = new mongoose.Schema(
       enum: [
         "Pending",
         "Confirmed",
+        "Processing",
         "Shipped",
         "OutForDelivery",
         "Delivered",
@@ -41,6 +42,7 @@ const OrderSchema = new mongoose.Schema(
 
     buyerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     sellerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
 
     conversationId: { type: mongoose.Schema.Types.ObjectId, ref: "Conversation" },
     offerId: { type: mongoose.Schema.Types.ObjectId, ref: "NegotiationOffer" },
@@ -56,6 +58,9 @@ const OrderSchema = new mongoose.Schema(
       discount: { type: Number, default: 0, min: 0 },
       grandTotal: { type: Number, required: true, min: 0 },
     },
+
+    pickupDate: { type: Date },
+    pickupTimeSlot: { type: String, enum: ["Morning", "Afternoon", "Evening"] },
 
     deliveryAddress: {
       contactName: { type: String, trim: true },
@@ -78,6 +83,7 @@ const OrderSchema = new mongoose.Schema(
       enum: [
         "Pending",
         "Confirmed",
+        "Processing",
         "Shipped",
         "OutForDelivery",
         "Delivered",
@@ -95,6 +101,19 @@ const OrderSchema = new mongoose.Schema(
     invoiceId: { type: mongoose.Schema.Types.ObjectId, ref: "Invoice" },
     deliveryId: { type: mongoose.Schema.Types.ObjectId, ref: "Delivery" },
     refundRequestId: { type: mongoose.Schema.Types.ObjectId, ref: "RefundRequest" },
+
+    otp: { type: String, trim: true },
+    customerSubmittedOTP: { type: String, trim: true },
+    customerSubmittedPhoto: { type: String, trim: true },
+    rider: {
+      id: { type: String },
+      name: { type: String, trim: true },
+      distance: { type: Number }, 
+    },
+    deliveryProof: {
+      url: { type: String, trim: true },
+      uploadedAt: { type: Date },
+    },
 
     deliveredAt: { type: Date },
     completedAt: { type: Date },

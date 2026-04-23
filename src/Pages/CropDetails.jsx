@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Tag, Package, AlertCircle, CheckCircle, ArrowLeft, Phone, Calendar, ShoppingCart } from 'lucide-react';
 import '../CSS/CropMarketplace.css';
 import { useCart } from '../context/CartContext';
+import VendorReviews from '../Components/VendorReviews';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -77,6 +78,14 @@ export default function CropDetails() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem' }}>
                             <div style={{ flex: 1, minWidth: '300px' }}>
                                 <h1 style={{ margin: '0 0 1rem 0', color: 'var(--primary-dark)', fontSize: '2.5rem', fontWeight: 800 }}>{crop.name}</h1>
+                                <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '1.05rem', marginBottom: '1rem', backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', width: 'fit-content' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#eab308', fontWeight: 'bold' }}>
+                                        ⭐ {crop.averageRating > 0 ? crop.averageRating.toFixed(1) : '0.0'} Product Rating ({crop.totalReviews} Reviews)
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981', fontWeight: 'bold', marginLeft: '1rem' }}>
+                                        🛡️ Product Trust: {Math.round(crop.trustScore || 0)}
+                                    </span>
+                                </div>
                                 <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--secondary)', flexWrap: 'wrap', fontSize: '1.05rem' }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: 'var(--neutral-bg)', padding: '0.4rem 0.8rem', borderRadius: '6px' }}><Tag size={18} /> {crop.variety}</span>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: 'var(--neutral-bg)', padding: '0.4rem 0.8rem', borderRadius: '6px' }}><MapPin size={18} /> {crop.region}</span>
@@ -160,13 +169,31 @@ export default function CropDetails() {
                                     <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'var(--secondary)', color: 'var(--white)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '1.5rem' }}>
                                         {crop.seller?.name?.charAt(0) || 'S'}
                                     </div>
-                                    <div>
+                                    <div style={{ flex: 1 }}>
                                         <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--primary-dark)', fontSize: '1.1rem' }}>{crop.seller?.name || 'Verified Supplier'}</h4>
-                                        <p style={{ margin: 0, color: 'var(--secondary)', fontSize: '0.9rem' }}>Member since 2024</p>
+                                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', fontSize: '0.85rem' }}>
+                                            <span style={{ color: 'var(--secondary)' }}>Member since 2024</span>
+                                            {crop.seller?.totalReviews > 0 && (
+                                                <>
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#eab308', fontWeight: 'bold' }}>
+                                                        ⭐ {crop.seller.averageRating?.toFixed(1)} Seller Rating
+                                                    </span>
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#10b981', fontWeight: 'bold' }}>
+                                                        🛡️ Seller Trust: {Math.round(crop.seller.trustScore || 0)}
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Product Reviews */}
+                        {crop.id ? (
+                            <VendorReviews vendorId={crop.sellerId || crop.vendorId || crop.seller?._id} productId={crop.id} />
+                        ) : null}
+
                     </div>
                 </div>
             </div>

@@ -21,6 +21,8 @@ import DashboardLayout from './Components/DashboardLayout'
 import DashboardOverview from './Pages/DashboardOverview'
 import DashboardProfile from './Pages/DashboardProfile'
 import ChatbotPage from './Pages/ChatbotPage'
+import VendorDelivery from './Pages/VendorDelivery'
+import AiAdminReviews from './Pages/AiAdminReviews'
 import SmartAgroMarket from './temporary/chaman/SmartAgroMarket'
 import EscrowDashboard from './temporary/chaman/EscrowDashboard'
 import PaymentPage from './temporary/chaman/PaymentPage'
@@ -80,10 +82,12 @@ createRoot(document.getElementById('root')).render(
               <Route path="escrow" element={<EscrowDashboard />} />
               <Route path="payment" element={<PaymentPage />} />
               <Route path="orders" element={<OrderHistory />} />
+              <Route path="delivery-handler/:orderId" element={<VendorDelivery />} />
               <Route path="messages" element={<ChamanPage />} />
               <Route path="map" element={<SearchMapPage />} />
               <Route path="settings" element={<div className="dashboard-content"><h3>Settings Page (Coming Soon)</h3></div>} />
             </Route>
+            <Route path="/aiadmin/reviews" element={<AiAdminReviews />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/login" replace />} />

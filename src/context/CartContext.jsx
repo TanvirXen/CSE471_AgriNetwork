@@ -23,15 +23,18 @@ export const CartProvider = ({ children }) => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const addToCart = (crop, qty = 1) => {
+  const addToCart = (crop, qty) => {
     setCart(prev => {
+      const minQty = crop.minimumOrderQty || 1;
+      const initialQty = qty || minQty;
+      
       const existing = prev.find(item => item.id === crop.id);
       if (existing) {
         return prev.map(item => 
-          item.id === crop.id ? { ...item, qty: item.qty + qty } : item
+          item.id === crop.id ? { ...item, qty: item.qty + (qty || 1) } : item
         );
       }
-      return [...prev, { ...crop, qty }];
+      return [...prev, { ...crop, qty: initialQty }];
     });
   };
 
@@ -39,7 +42,13 @@ export const CartProvider = ({ children }) => {
     setCart(prev => prev.map(item => {
       if (item.id === cropId) {
         const minQty = item.minimumOrderQty || 1;
-        const newQty = item.qty + delta;
+        let newQty = item.qty + delta;
+        
+        // Auto-fix if they increment while currently trapped below MOQ
+        if (delta > 0 && item.qty < minQty) {
+           newQty = minQty;
+        }
+
         if (newQty >= minQty) {
           return { ...item, qty: newQty };
         }

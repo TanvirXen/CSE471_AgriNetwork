@@ -46,6 +46,7 @@ const ListingPricingSchema = new mongoose.Schema(
 const FarmerListingSchema = new mongoose.Schema(
   {
     sellerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
     categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true, index: true },
 
     title: { type: String, required: true, trim: true, index: true },
@@ -118,6 +119,10 @@ const FarmerListingSchema = new mongoose.Schema(
 
     viewCount: { type: Number, default: 0 },
     saveCount: { type: Number, default: 0 },
+
+    averageRating: { type: Number, default: 0 },
+    totalReviews: { type: Number, default: 0 },
+    trustScore: { type: Number, default: 0 },
   },
   { timestamps: true, collection: "CropMarketplace" }
 );
