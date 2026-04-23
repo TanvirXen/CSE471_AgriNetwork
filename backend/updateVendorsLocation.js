@@ -3,7 +3,8 @@ const User = require("./models/User");
 
 require("dotenv").config(); // Depending on server setup
 
-const MONGODB_URI = process.env.MONGO_URI || "mongodb://localhost:27017/agrinetwork";
+const MONGODB_URI = process.env.MONGO_URI;
+//|| "mongodb://localhost:27017/agrinetwork";
 
 const dbConnect = async () => {
   try {

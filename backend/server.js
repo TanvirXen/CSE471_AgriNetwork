@@ -5,7 +5,8 @@ const mongoose = require("mongoose");
 const { Server } = require("socket.io");
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/AgriTest";
+const MONGO_URI = process.env.MONGO_URI ;
+//|| "mongodb://localhost:27017/AgriTest";
 
 const server = http.createServer(app);
 const io = new Server(server, {
