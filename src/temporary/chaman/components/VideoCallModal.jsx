@@ -19,6 +19,7 @@ function VideoCallModal({
   conversation,
   localStream,
   remoteStream,
+  errorMessage,
   isMuted,
   isCameraOff,
   isScreenSharing,
@@ -31,13 +32,24 @@ function VideoCallModal({
 }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const remoteAudioRef = useRef(null);
 
   useEffect(() => {
-    if (localVideoRef.current) localVideoRef.current.srcObject = localStream || null;
+    if (!localVideoRef.current) return;
+    localVideoRef.current.srcObject = localStream || null;
+    localVideoRef.current.play?.().catch(() => {});
   }, [localStream]);
 
   useEffect(() => {
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream || null;
+    if (!remoteVideoRef.current) return;
+    remoteVideoRef.current.srcObject = remoteStream || null;
+    remoteVideoRef.current.play?.().catch(() => {});
+  }, [remoteStream]);
+
+  useEffect(() => {
+    if (!remoteAudioRef.current) return;
+    remoteAudioRef.current.srcObject = remoteStream || null;
+    remoteAudioRef.current.play?.().catch(() => {});
   }, [remoteStream]);
 
   if (!isOpen) return null;
@@ -45,10 +57,13 @@ function VideoCallModal({
   const isCallActive = status === "waiting" || status === "connected" || status === "connecting";
   const isTerminal = status === "error" || status === "ending";
   const showIceWarning = iceState === "disconnected" || iceState === "failed";
+  const hasRemoteMedia = Boolean(remoteStream?.getTracks?.().length);
 
   const statusText =
     status === "connected"
       ? formatDuration(callDuration || 0)
+      : status === "error"
+      ? errorMessage || STATUS_TEXT.error
       : STATUS_TEXT[status] || "";
 
   const remotePlaceholderText = status === "waiting"
@@ -56,7 +71,7 @@ function VideoCallModal({
     : status === "connecting"
     ? "Establishing secure P2P connection..."
     : status === "error"
-    ? "Could not reach the other participant."
+    ? errorMessage || "Could not reach the other participant."
     : "Waiting for participant...";
 
   return (
@@ -67,6 +82,7 @@ function VideoCallModal({
         aria-modal="true"
         aria-label="Video call"
       >
+        <audio ref={remoteAudioRef} autoPlay playsInline />
         <div className="cn-call-modal__header">
           <div>
             <div className="cn-call-modal__name">{conversation?.name || "Video Call"}</div>
@@ -84,8 +100,8 @@ function VideoCallModal({
 
         <div className="cn-call-stage">
           <div className="cn-call-stage__remote">
-            {remoteStream ? (
-              <video ref={remoteVideoRef} autoPlay playsInline className="cn-call-video" />
+            {hasRemoteMedia ? (
+              <video ref={remoteVideoRef} autoPlay playsInline muted className="cn-call-video" />
             ) : (
               <div className="cn-call-placeholder">
                 <div className="cn-call-placeholder__avatar">
@@ -98,7 +114,7 @@ function VideoCallModal({
 
           {localStream && (
             <div className="cn-call-stage__local">
-              {!isCameraOff && !isScreenSharing ? (
+              {(!isCameraOff || isScreenSharing) ? (
                 <video ref={localVideoRef} autoPlay playsInline muted className="cn-call-video" />
               ) : (
                 <div className="cn-call-local-placeholder">

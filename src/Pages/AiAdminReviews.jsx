@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield, Trash2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+import { API_BASE_URL } from '../config/network';
 
 export default function AiAdminReviews() {
   const { user } = useAuth();

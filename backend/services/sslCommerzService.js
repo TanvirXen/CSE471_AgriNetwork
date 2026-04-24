@@ -2,20 +2,30 @@ const https = require("https");
 
 const SANDBOX_BASE_URL = "https://sandbox.sslcommerz.com";
 const LIVE_BASE_URL = "https://securepay.sslcommerz.com";
+const MOCK_SESSION_PREFIX = "mock-session-";
+const MOCK_VAL_ID_PREFIX = "MOCK-";
 
 const getCredentials = () => ({
   storeId: process.env.SSLCOMMERZ_STORE_ID,
   storePassword: process.env.SSLCOMMERZ_STORE_PASSWORD,
 });
 
+const isMockMode = () =>
+  String(process.env.SSLCOMMERZ_MOCK_MODE || "").toLowerCase() === "true" &&
+  String(process.env.NODE_ENV || "").toLowerCase() !== "production";
+
 const isConfigured = () => {
   const { storeId, storePassword } = getCredentials();
   return Boolean(storeId && storePassword);
 };
 
+const isReady = () => isConfigured() || isMockMode();
+
 const assertConfigured = () => {
-  if (!isConfigured()) {
-    throw new Error("SSLCommerz is not configured. Set SSLCOMMERZ_STORE_ID and SSLCOMMERZ_STORE_PASSWORD.");
+  if (!isReady()) {
+    throw new Error(
+      "SSLCommerz is not configured. Set SSLCOMMERZ_STORE_ID and SSLCOMMERZ_STORE_PASSWORD, or enable SSLCOMMERZ_MOCK_MODE for local development."
+    );
   }
 };
 
@@ -85,8 +95,42 @@ const buildFormBody = (payload) => {
 };
 
 exports.isConfigured = isConfigured;
+exports.isMockMode = isMockMode;
+exports.isReady = isReady;
+
+const buildMockValidationResponse = ({ valId, tranId, amount, currency = "BDT" }) => ({
+  status: "VALID",
+  tran_id: tranId,
+  amount: Number(amount).toFixed(2),
+  currency,
+  val_id: valId || `${MOCK_VAL_ID_PREFIX}${tranId}`,
+  store_amount: Number(amount).toFixed(2),
+  sessionkey: `${MOCK_SESSION_PREFIX}${tranId}`,
+  risk_level: "0",
+});
+
+exports.buildMockValidationResponse = buildMockValidationResponse;
 
 exports.initiateSession = async (payload) => {
+  if (!isConfigured() && isMockMode()) {
+    const mockGatewayUrl = new URL(payload.success_url);
+    mockGatewayUrl.searchParams.set("tran_id", payload.tran_id);
+    mockGatewayUrl.searchParams.set("val_id", `${MOCK_VAL_ID_PREFIX}${payload.tran_id}`);
+    mockGatewayUrl.searchParams.set("status", "VALID");
+    mockGatewayUrl.searchParams.set("amount", String(payload.total_amount));
+    mockGatewayUrl.searchParams.set("currency", payload.currency || "BDT");
+    mockGatewayUrl.searchParams.set("sessionkey", `${MOCK_SESSION_PREFIX}${payload.tran_id}`);
+
+    return {
+      status: "SUCCESS",
+      GatewayPageURL: mockGatewayUrl.toString(),
+      redirectGatewayURL: mockGatewayUrl.toString(),
+      sessionkey: `${MOCK_SESSION_PREFIX}${payload.tran_id}`,
+      store_amount: String(payload.total_amount),
+      isMock: true,
+    };
+  }
+
   assertConfigured();
   const { storeId, storePassword } = getCredentials();
 
@@ -103,7 +147,15 @@ exports.initiateSession = async (payload) => {
   });
 };
 
-exports.validatePayment = async ({ valId, tranId }) => {
+exports.validatePayment = async ({ valId, tranId, amount, currency = "BDT" }) => {
+  if (!isConfigured() && isMockMode()) {
+    if (!tranId) {
+      throw new Error("SSLCommerz validation requires tranId in mock mode.");
+    }
+
+    return buildMockValidationResponse({ valId, tranId, amount, currency });
+  }
+
   assertConfigured();
   const { storeId, storePassword } = getCredentials();
 

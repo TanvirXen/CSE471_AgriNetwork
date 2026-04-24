@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Truck, UploadCloud, CheckCircle, Navigation, MapPin, KeyRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+import { API_BASE_URL } from '../config/network';
 
 const VendorDelivery = () => {
   const { orderId } = useParams();

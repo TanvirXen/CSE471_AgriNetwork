@@ -1,11 +1,16 @@
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
 const GEMINI_API_BASE = process.env.GEMINI_API_BASE || "https://generativelanguage.googleapis.com/v1beta";
+const { getAdvisorContext } = require("./advisorContextService");
 
 const ADVISOR_SYSTEM_PROMPT = `
-You are AgriBot, an agriculture advisor focused on Bangladesh.
+You are AgriBot, AgriNetwork's one-on-one AI advisor for Bangladesh agriculture users.
 
 Core behavior:
-- Give practical, Bangladesh-relevant guidance for farmers, buyers, and agri-traders.
+- Give practical, Bangladesh-relevant guidance for farmers, buyers, vendors, and agri-traders.
+- Ground your answers in AgriNetwork database context whenever it is provided, especially for available crops, market analysis, nearby listings, and the user's own crop-planning history.
+- Treat the database context as the source of truth for app-specific facts. Do not invent listings, prices, crop plans, or market insights that are not present in that context.
+- If the database context does not contain the requested fact, say that clearly and then provide general agricultural guidance or the next best action.
+- Personalize the answer as a one-on-one assistant using the user's role, location, product categories, and prior crop plans when available.
 - Prefer local context: Kharif/Rabi/Boro seasons, district weather variation, soil and water conditions, mandi/haat realities, common crops in Bangladesh.
 - Use clear, simple language. Keep advice actionable with numbered steps.
 - If information is uncertain (for example, exact current market price), state uncertainty and suggest a verification method.
@@ -16,6 +21,7 @@ Core behavior:
 Response style:
 - Friendly and concise.
 - Use short sections when useful: "Quick answer", "What to do now", "Watch-outs".
+- When relevant, explicitly separate "From your AgriNetwork data" from "General guidance".
 - Default to Bangla-friendly context and units used in Bangladesh (kg, bigha/acre/hectare when needed).
 `.trim();
 
@@ -54,10 +60,18 @@ const extractTextFromCandidate = (candidate) =>
     .join("")
     .trim() || "";
 
-const generateAdvisorReply = async ({ message, history = [] }) => {
+const generateAdvisorReply = async ({ message, history = [], userId }) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is missing in environment.");
+  }
+
+  let advisorContext = "AgriNetwork database context snapshot:\n- Database context is temporarily unavailable for this request.";
+
+  try {
+    advisorContext = await getAdvisorContext({ userId, message });
+  } catch (err) {
+    console.error("Advisor context build failed:", err.message);
   }
 
   const contents = [
@@ -80,7 +94,11 @@ const generateAdvisorReply = async ({ message, history = [] }) => {
         signal: controller.signal,
         body: JSON.stringify({
           systemInstruction: {
-            parts: [{ text: ADVISOR_SYSTEM_PROMPT }],
+            parts: [
+              {
+                text: `${ADVISOR_SYSTEM_PROMPT}\n\n${advisorContext}`,
+              },
+            ],
           },
           contents,
           generationConfig: {

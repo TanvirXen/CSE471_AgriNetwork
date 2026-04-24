@@ -19,7 +19,7 @@ const MessageSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["text", "negotiation", "status", "image", "audio", "file"],
+      enum: ["text", "negotiation", "status", "image", "audio", "file", "video_call"],
       default: "text",
     },
     text: {
@@ -33,6 +33,10 @@ const MessageSchema = new mongoose.Schema(
     negotiationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Negotiation",
+    },
+    videoCallId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "VideoCallSession",
     },
   },
   { timestamps: true }

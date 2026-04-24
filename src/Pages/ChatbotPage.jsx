@@ -295,8 +295,8 @@ const ChatbotPage = () => {
   };
 
   const suggestedPrompts = [
-    { text: "What's the current market price for Boro Rice?", icon: <TrendingUp size={14} /> },
-    { text: 'Suggest crops for the next season in Bangladesh', icon: <Sparkles size={14} /> },
+    { text: 'Show available rice or mustard listings near my area', icon: <TrendingUp size={14} /> },
+    { text: 'Suggest crops for my next season using my saved data', icon: <Sparkles size={14} /> },
     { text: 'How to reduce blast disease risk in paddy?', icon: <Info size={14} /> },
   ];
 
@@ -355,7 +355,7 @@ const ChatbotPage = () => {
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '700' }}>{activeSessionTitle}</h3>
-            <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Online - AI Powered Guidance</p>
+            <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Online - Database + AI Guidance</p>
           </div>
         </header>
 
@@ -371,8 +371,8 @@ const ChatbotPage = () => {
               </div>
               <h2>Start your first advisor chat</h2>
               <p>
-                Ask about crop planning, disease prevention, irrigation timing, fertilizer strategy,
-                or Bangladesh market prices. Your conversations will be saved automatically here.
+                Ask about available crops from the database, market analysis, crop planning, disease
+                prevention, or selling strategy. Your conversations will be saved automatically here.
               </p>
               <div className="chatbot-welcome-actions">
                 <button className="new-chat-button" onClick={handleCreateSession} type="button">
@@ -383,7 +383,7 @@ const ChatbotPage = () => {
               <div className="chatbot-welcome-tips">
                 <div className="chatbot-welcome-tip">
                   <strong>Crop advice</strong>
-                  <span>Best seasonal crops for your district</span>
+                  <span>Best seasonal crops using your location and saved plans</span>
                 </div>
                 <div className="chatbot-welcome-tip">
                   <strong>Disease help</strong>
@@ -391,7 +391,7 @@ const ChatbotPage = () => {
                 </div>
                 <div className="chatbot-welcome-tip">
                   <strong>Market planning</strong>
-                  <span>Price trends and selling timing</span>
+                  <span>Database-backed price trends and selling timing</span>
                 </div>
               </div>
             </div>
@@ -439,7 +439,7 @@ const ChatbotPage = () => {
             <input
               type="text"
               className="chat-input-field"
-              placeholder="Ask about crop planning, disease, irrigation, or market timing..."
+              placeholder="Ask about available crops, market analysis, disease, or crop planning..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={isTyping || isBootstrapping || isLoadingSession}

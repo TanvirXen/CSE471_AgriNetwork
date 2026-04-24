@@ -11,8 +11,7 @@ import ResultsList from "./components/ResultsList";
 import DetailModal from "./components/DetailModal";
 
 import { useNavigate, useSearchParams } from "react-router-dom";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
+import { API_BASE_URL as API_BASE } from "../../config/network";
 
 // Transform backend listing to frontned marker format
 function listingToMarker(l) {

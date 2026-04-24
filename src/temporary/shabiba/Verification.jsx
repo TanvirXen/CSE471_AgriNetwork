@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, AlertCircle, Leaf, X } from 'lucide-react';
+import { API_BASE_URL } from '../../config/network';
 import './Verification.css';
 
 const Verification = () => {
@@ -55,7 +56,7 @@ const Verification = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const apiUrl = import.meta.env.VITE_API_URL || '';
+            const apiUrl = API_BASE_URL;
             const response = await fetch(`${apiUrl}/api/users/verify-nid`, {
                 method: 'POST',
                 headers: {

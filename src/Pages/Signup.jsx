@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Leaf, User, Store, ArrowRight, ArrowLeft, Phone, Lock, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { buildApiUrl } from '../config/network';
 import '../CSS/Auth.css';
 
 const Signup = () => {
@@ -39,7 +40,7 @@ const Signup = () => {
     setError('');
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
+      const res = await fetch(buildApiUrl('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, role: role.charAt(0).toUpperCase() + role.slice(1) })

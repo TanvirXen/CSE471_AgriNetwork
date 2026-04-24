@@ -13,9 +13,10 @@ const Chatbot = () => {
   const [windowPosition, setWindowPosition] = useState(null);
   const [triggerPosition, setTriggerPosition] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([
     {
-      text: "Assalamu alaikum. I am AgriBot, your Bangladesh agriculture advisor. Ask about crop planning, pest management, market timing, or farm decisions.",
+      text: "Assalamu alaikum. I am AgriBot, your AgriNetwork advisor. I can guide you using available crop data, market analysis, and your ongoing conversation context.",
       sender: 'bot',
     }
   ]);
@@ -262,21 +263,18 @@ const Chatbot = () => {
     if (!messageText || isTyping) return;
 
     const userMessage = { text: messageText, sender: 'user' };
-    const historyForApi = messages.map((msg) => ({
-      role: msg.sender === 'user' ? 'user' : 'assistant',
-      text: msg.text,
-    }));
 
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
 
     try {
-      const reply = await fetchAdvisorReply({
+      const response = await fetchAdvisorReply({
         message: messageText,
-        history: historyForApi,
+        sessionId,
       });
-      setMessages((prev) => [...prev, { text: reply, sender: 'bot' }]);
+      setSessionId(response.sessionId);
+      setMessages((prev) => [...prev, { text: response.reply, sender: 'bot' }]);
     } catch (err) {
       setMessages((prev) => [
         ...prev,
@@ -344,7 +342,7 @@ const Chatbot = () => {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Bot size={20} />
-                <span style={{ fontWeight: '600' }}>AgriBot Support</span>
+                <span style={{ fontWeight: '600' }}>AgriBot Advisor</span>
               </div>
               <X
                 size={20}
@@ -367,7 +365,7 @@ const Chatbot = () => {
             <form className="chatbot-input" onSubmit={handleSend}>
               <input 
                 type="text" 
-                placeholder="Type your message..." 
+                placeholder="Ask about available crops, market trends, or crop decisions..." 
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 disabled={isTyping}

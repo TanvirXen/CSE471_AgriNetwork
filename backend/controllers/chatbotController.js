@@ -5,7 +5,7 @@ const {
 } = require("../services/geminiAdvisorService");
 
 const DEFAULT_GREETING =
-  "Assalamu alaikum. I am your AI agriculture advisor for Bangladesh. Ask me about seasonal crop planning, pest and disease decisions, or market strategy.";
+  "Assalamu alaikum. I am your AgriNetwork AI advisor. I use your crop, market, and planning data to give one-on-one guidance on available crops, market analysis, and farm decisions.";
 
 const buildDefaultTitle = (date = new Date()) =>
   `Chat ${date.toLocaleDateString("en-GB", {
@@ -93,7 +93,7 @@ exports.createSession = async (req, res) => {
           timestamp: new Date(),
         },
       ],
-      dataSource: "AI",
+      dataSource: "Hybrid",
       topicTags: [],
       sessionStatus: "Active",
     });
@@ -170,6 +170,7 @@ exports.reply = async (req, res) => {
       reply = await generateAdvisorReply({
         message: trimmedMessage,
         history: buildHistoryForModel(session.messages),
+        userId: req.user.id,
       });
     } catch (err) {
       console.error("Chatbot model error:", err.message);

@@ -1,8 +1,10 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, ".env") });
 const http = require("http");
 const app = require("./app");
 const mongoose = require("mongoose");
 const { Server } = require("socket.io");
+const { buildCorsOriginHandler } = require("./utils/frontendOrigins");
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI ;
@@ -11,7 +13,8 @@ const MONGO_URI = process.env.MONGO_URI ;
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: buildCorsOriginHandler(),
+    credentials: true,
   },
 });
 
@@ -124,6 +127,10 @@ io.on("connection", (socket) => {
 });
 
 console.log("Attempting to connect to MongoDB...");
+if (!MONGO_URI) {
+  throw new Error("MONGO_URI is missing from backend/.env");
+}
+
 const obfuscatedUri = MONGO_URI.replace(/:([^:@]{1,})@/, ":****@");
 console.log(`Connection String: ${obfuscatedUri}`);
 

@@ -1,16 +1,60 @@
-# React + Vite
+# AgriNetwork
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+AgriNetwork is a React + Vite frontend with an Express/MongoDB backend in the `backend/` directory.
 
-Currently, two official plugins are available:
+## Frontend setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Install dependencies in the repo root:
 
-## React Compiler
+```bash
+yarn install
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+2. Create a frontend env file from the template:
 
-## Expanding the ESLint configuration
+```powershell
+Copy-Item .env.example .env
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+For local development, the frontend expects the backend at `http://localhost:5000`.
+
+3. Start the frontend:
+
+```bash
+yarn dev
+```
+
+## Backend setup
+
+1. Install backend dependencies:
+
+```bash
+cd backend
+yarn install
+```
+
+2. Create the backend env file:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+3. Set at least these backend values:
+
+- `MONGO_URI`
+- `JWT_SECRET`
+- `PORT=5001`
+- `FRONTEND_URL=http://localhost:5173`
+- `BACKEND_PUBLIC_URL=http://localhost:5001`
+- Either configure `SSLCOMMERZ_STORE_ID` and `SSLCOMMERZ_STORE_PASSWORD`, or set `SSLCOMMERZ_MOCK_MODE=true` for local development
+
+4. Start the backend:
+
+```bash
+yarn dev
+```
+
+## Notes
+
+- The frontend uses `VITE_API_URL` for API requests.
+- `VITE_SOCKET_URL` can be omitted when sockets use the same backend URL, but setting both keeps local setup explicit.

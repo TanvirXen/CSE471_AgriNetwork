@@ -24,10 +24,17 @@ exports.getConversations = async (req, res) => {
       if (!seen.has(msg.conversationId)) {
         seen.add(msg.conversationId);
         const other = msg.sender._id.toString() === userId ? msg.receiver : msg.sender;
+        const fallbackLastMessage =
+          msg.type === "video_call"
+            ? "Video call invitation"
+            : msg.type === "negotiation"
+            ? "Sent an offer"
+            : "New message";
+
         conversations.push({
           conversationId: msg.conversationId,
           otherUser: other,
-          lastMessage: msg.text || "Sent an offer",
+          lastMessage: msg.text || fallbackLastMessage,
           lastTime: msg.createdAt,
           unread: 0,
         });
@@ -50,6 +57,7 @@ exports.getMessages = async (req, res) => {
     const messages = await Message.find({ conversationId })
       .populate("sender", "fullName profile.avatar role")
       .populate("negotiationId")
+      .populate("videoCallId")
       .sort({ createdAt: 1 });
 
     res.json(messages);

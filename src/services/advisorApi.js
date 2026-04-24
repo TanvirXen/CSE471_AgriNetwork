@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+import { API_BASE_URL } from "../config/network";
 
 const getAuthHeaders = (token) => ({
   "Content-Type": "application/json",
@@ -72,19 +72,29 @@ export const sendChatMessage = async ({ token, sessionId, message }) => {
   return payload.session;
 };
 
-export const fetchAdvisorReply = async ({ message }) => {
+export const fetchAdvisorReply = async ({ message, sessionId }) => {
   const token = localStorage.getItem("token");
 
   if (!token) {
     throw new Error("Please log in to use the advisor.");
   }
 
-  const session = await createChatSession(token);
+  let activeSessionId = sessionId;
+
+  if (!activeSessionId) {
+    const session = await createChatSession(token);
+    activeSessionId = session.id;
+  }
+
   const updatedSession = await sendChatMessage({
     token,
-    sessionId: session.id,
+    sessionId: activeSessionId,
     message,
   });
 
-  return updatedSession.messages[updatedSession.messages.length - 1]?.text || "";
+  return {
+    sessionId: updatedSession.id,
+    reply: updatedSession.messages[updatedSession.messages.length - 1]?.text || "",
+    session: updatedSession,
+  };
 };

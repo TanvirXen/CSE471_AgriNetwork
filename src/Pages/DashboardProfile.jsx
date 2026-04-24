@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Camera, Check, Loader2, MapPin, Phone, Store, WalletCards } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { buildApiUrl } from '../config/network';
 
 const DashboardProfile = () => {
   const { user, token, updateUserInfo } = useAuth();
@@ -42,7 +43,7 @@ const DashboardProfile = () => {
     const syncWalletResult = async () => {
       if (walletStatus === 'success' && token) {
         try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+          const res = await fetch(buildApiUrl('/api/auth/me'), {
             headers: {
               'x-auth-token': token
             }
@@ -106,7 +107,7 @@ const DashboardProfile = () => {
     setWalletMessage({ type: '', text: '' });
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/wallet/initiate`, {
+      const res = await fetch(buildApiUrl('/api/payments/wallet/initiate'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -135,7 +136,7 @@ const DashboardProfile = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/profile`, {
+      const res = await fetch(buildApiUrl('/api/users/profile'), {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

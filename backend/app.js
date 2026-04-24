@@ -14,6 +14,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const deliveryRoutes = require("./routes/deliveryRoutes");
 const riderRoutes = require("./routes/riderRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const { buildCorsOriginHandler } = require("./utils/frontendOrigins");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -23,7 +24,7 @@ const messageUploadMiddleware = fileUpload({
 });
 
 app.use(cors({
-  origin: true,
+  origin: buildCorsOriginHandler(),
   credentials: true,
   optionsSuccessStatus: 200
 }));

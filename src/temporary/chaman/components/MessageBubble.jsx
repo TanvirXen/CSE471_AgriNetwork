@@ -1,19 +1,28 @@
 // MessageBubble.jsx — AgriNetwork Bangladesh
 // Single message row — plain text or negotiation card (type="negotiation")
 import NegotiationCard from "./NegotiationCard";
+import { buildMediaUrl } from "../../../config/network";
 
 /**
  * Props:
  *  message: {
- *    id, type: "text"|"negotiation"|"status",
+ *    id, type: "text"|"negotiation"|"status"|"video_call",
  *    text, timestamp, isSent,
  *    senderInitials,
  *    -- if type === "negotiation" --
  *    negType, crop, quantity, offerPrice, marketPrice, unit
  *  }
- *  onAcceptOffer, onRejectOffer, onCounterOffer — callbacks for negotiation actions
+ *  onAcceptOffer, onRejectOffer, onCounterOffer, onJoinVideoCall — callbacks for actions
  */
-function MessageBubble({ message, onAcceptOffer, onRejectOffer, onCounterOffer }) {
+function MessageBubble({
+    message,
+    onAcceptOffer,
+    onRejectOffer,
+    onCounterOffer,
+    onJoinVideoCall,
+    joiningCallId,
+    activeCallId,
+}) {
     const { type, isSent, senderInitials, timestamp, text } = message;
 
     // Status / system message
@@ -30,6 +39,77 @@ function MessageBubble({ message, onAcceptOffer, onRejectOffer, onCounterOffer }
         return (
             <div className="cn-date-divider">
                 <span>{text}</span>
+            </div>
+        );
+    }
+
+    if (type === "video_call") {
+        const isJoining = joiningCallId === message.callId;
+        const isActive = activeCallId === message.callId;
+        const statusLabel = {
+            Ongoing: "Live",
+            Scheduled: "Scheduled",
+            Completed: "Ended",
+            Cancelled: "Cancelled",
+            Missed: "Missed",
+        }[message.callStatus] || "Call";
+
+        let actionLabel = null;
+        let actionDisabled = true;
+
+        if (!isSent) {
+            if (isActive) {
+                actionLabel = "Call Active";
+            } else if (isJoining) {
+                actionLabel = "Joining...";
+            } else if (message.callCanJoin) {
+                actionLabel = "Join Call";
+                actionDisabled = false;
+            } else if (message.callJoined) {
+                actionLabel = "Joined";
+            } else {
+                actionLabel = statusLabel;
+            }
+        }
+
+        return (
+            <div className={`cn-msg-row ${isSent ? "sent" : "received"}`}>
+                {!isSent && (
+                    <div className="cn-msg-avatar">{senderInitials}</div>
+                )}
+                <div className="cn-msg-stack">
+                    <div className={`cn-call-invite-card${isSent ? " sent" : ""}`}>
+                        <div className="cn-call-invite-card__top">
+                            <span className="cn-call-invite-card__badge">Video Call</span>
+                            <span className="cn-call-invite-card__status">{statusLabel}</span>
+                        </div>
+                        <div className="cn-call-invite-card__title">
+                            {isSent ? "Call started" : "Join video call"}
+                        </div>
+                        <div className="cn-call-invite-card__text">
+                            {text || "A video call invitation is available for this chat."}
+                        </div>
+                        {actionLabel && (
+                            <button
+                                type="button"
+                                className={`cn-btn ${actionDisabled ? "cn-btn--ghost" : "cn-btn--primary"} cn-call-invite-card__action`}
+                                onClick={() => !actionDisabled && onJoinVideoCall && onJoinVideoCall(message)}
+                                disabled={actionDisabled}
+                            >
+                                {actionLabel}
+                            </button>
+                        )}
+                    </div>
+                    <div className="cn-msg-timestamp" style={isSent ? {} : { justifyContent: "flex-start" }}>
+                        {timestamp}
+                        {isSent && <span>âœ“âœ“</span>}
+                    </div>
+                </div>
+                {isSent && (
+                    <div className="cn-msg-avatar" style={{ background: "linear-gradient(135deg, #344e41, #3a5a40)" }}>
+                        You
+                    </div>
+                )}
             </div>
         );
     }
@@ -75,7 +155,7 @@ function MessageBubble({ message, onAcceptOffer, onRejectOffer, onCounterOffer }
                 {!isSent && <div className="cn-msg-avatar">{senderInitials}</div>}
                 <div className="cn-msg-stack">
                     <div className="cn-msg-media cn-msg-media--image">
-                        <img src={`${import.meta.env.VITE_API_URL || ""}${message.mediaUrl}`} alt="Sent media" />
+                        <img src={buildMediaUrl(message.mediaUrl)} alt="Sent media" />
                     </div>
                     <div className="cn-msg-timestamp">
                         {timestamp}
@@ -94,7 +174,7 @@ function MessageBubble({ message, onAcceptOffer, onRejectOffer, onCounterOffer }
                 {!isSent && <div className="cn-msg-avatar">{senderInitials}</div>}
                 <div className="cn-msg-stack">
                     <div className="cn-msg-media cn-msg-media--audio">
-                        <audio controls src={`${import.meta.env.VITE_API_URL || ""}${message.mediaUrl}`} />
+                        <audio controls src={buildMediaUrl(message.mediaUrl)} />
                     </div>
                     <div className="cn-msg-timestamp">
                         {timestamp}
@@ -113,7 +193,7 @@ function MessageBubble({ message, onAcceptOffer, onRejectOffer, onCounterOffer }
                 {!isSent && <div className="cn-msg-avatar">{senderInitials}</div>}
                 <div className="cn-msg-stack">
                     <div className="cn-msg-bubble cn-msg-bubble--file">
-                        <a href={`${import.meta.env.VITE_API_URL || ""}${message.mediaUrl}`} target="_blank" rel="noopener noreferrer">
+                        <a href={buildMediaUrl(message.mediaUrl)} target="_blank" rel="noopener noreferrer">
                             📄 Download Document
                         </a>
                     </div>

@@ -5,6 +5,7 @@ import { Filter, Search, Calendar, MapPin, Tag, AlertCircle, CheckCircle, Packag
 import { useCart } from '../context/CartContext';
 import CartCheckoutModal from '../Components/CartCheckoutModal';
 import { Star, ShieldCheck } from 'lucide-react';
+import { API_BASE_URL } from '../config/network';
 
 const FILTER_OPTIONS = {
     variety: ['All', 'BRRI Dhan 28', 'Kataribhog', 'BARI Gom 26', 'Tosha Jute'],
@@ -12,8 +13,6 @@ const FILTER_OPTIONS = {
     grade: ['All', 'Premium', 'A', 'B', 'C'],
     sackType: ['All', 'Jute (50kg)', 'Plastic (25kg)', 'Woven Sack (50kg)', 'Bales (180kg)']
 };
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const CropMarketplace = () => {
     const navigate = useNavigate();

@@ -1,6 +1,7 @@
 const Payment = require("../models/Payment");
 const User = require("../models/User");
 const sslCommerzService = require("../services/sslCommerzService");
+const { getPreferredFrontendOrigin } = require("../utils/frontendOrigins");
 
 const MIN_TOP_UP_AMOUNT = 10;
 const MAX_TOP_UP_AMOUNT = 500000;
@@ -34,9 +35,15 @@ const getSafeUrl = (value) => {
 const buildAbsoluteUrl = (baseUrl, pathname) => new URL(pathname, `${baseUrl}/`).toString();
 
 const getFrontendBaseUrl = (req, payment) =>
-  getSafeUrl(payment?.gatewayResponse?.frontendBaseUrl) ||
-  getSafeUrl(process.env.FRONTEND_URL) ||
-  getSafeUrl(req.headers.origin);
+  getPreferredFrontendOrigin(
+    payment?.gatewayResponse?.frontendBaseUrl,
+    req.headers.origin,
+    process.env.FRONTEND_URL,
+    ...(process.env.FRONTEND_URLS || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+  );
 
 const getBackendBaseUrl = (req) =>
   getSafeUrl(process.env.BACKEND_PUBLIC_URL) || `${req.protocol}://${req.get("host")}`;
@@ -154,9 +161,10 @@ exports.initiateWalletTopUp = async (req, res) => {
     });
   }
 
-  if (!sslCommerzService.isConfigured()) {
+  if (!sslCommerzService.isReady()) {
     return res.status(500).json({
-      message: "SSLCommerz is not configured on the server.",
+      message:
+        "SSLCommerz is not configured on the server. Set SSLCOMMERZ_STORE_ID and SSLCOMMERZ_STORE_PASSWORD, or enable SSLCOMMERZ_MOCK_MODE for local development.",
     });
   }
 
@@ -269,6 +277,8 @@ exports.handleSuccessfulWalletPayment = async (req, res) => {
     const validationResponse = await sslCommerzService.validatePayment({
       valId: callbackPayload.val_id,
       tranId: callbackPayload.tran_id,
+      amount: payment.amount,
+      currency: payment.currency,
     });
 
     if (!isSuccessfulValidation(validationResponse, payment)) {
@@ -333,6 +343,8 @@ exports.handleWalletPaymentIpn = async (req, res) => {
     const validationResponse = await sslCommerzService.validatePayment({
       valId: callbackPayload.val_id,
       tranId: callbackPayload.tran_id,
+      amount: payment.amount,
+      currency: payment.currency,
     });
 
     if (!isSuccessfulValidation(validationResponse, payment)) {

@@ -5,6 +5,34 @@ const User = require("../models/User");
 const buildRoomId = () =>
   `call_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
+const populateInviteMessage = async (message) => {
+  if (!message) return null;
+  await message.populate("sender", "fullName profile.avatar role");
+  await message.populate("videoCallId");
+  return message;
+};
+
+const ensureCallInviteMessage = async ({ call, callerId, receiverId, callerName }) => {
+  let inviteMessage = await Message.findOne({
+    conversationId: call.conversationId,
+    type: "video_call",
+    videoCallId: call._id,
+  }).sort({ createdAt: -1 });
+
+  if (!inviteMessage && receiverId) {
+    inviteMessage = await Message.create({
+      conversationId: call.conversationId,
+      sender: callerId,
+      receiver: receiverId,
+      type: "video_call",
+      text: `${callerName || "Someone"} started a video call. Tap Join Call to connect.`,
+      videoCallId: call._id,
+    });
+  }
+
+  return populateInviteMessage(inviteMessage);
+};
+
 const ensureParticipant = (call, userId, { joined = false } = {}) => {
   let participant = call.participants.find(
     (item) => item.userId.toString() === userId.toString()
@@ -73,8 +101,19 @@ exports.startCall = async (req, res) => {
       }
       await activeCall.save();
 
+      const otherParticipantId =
+        receiverId ||
+        activeCall.participants.find((item) => item.userId.toString() !== callerId.toString())?.userId;
+      const inviteMessage = await ensureCallInviteMessage({
+        call: activeCall,
+        callerId: activeCall.createdBy,
+        receiverId: otherParticipantId,
+        callerName: req.user.fullName,
+      });
+
       return res.json({
         call: await serializeCall(activeCall),
+        inviteMessage,
         reused: true,
       });
     }
@@ -102,8 +141,16 @@ exports.startCall = async (req, res) => {
       callStatus: "Ongoing",
     });
 
+    const inviteMessage = await ensureCallInviteMessage({
+      call,
+      callerId,
+      receiverId,
+      callerName: req.user.fullName,
+    });
+
     return res.status(201).json({
       call: await serializeCall(call),
+      inviteMessage,
       reused: false,
     });
   } catch (err) {
@@ -117,6 +164,10 @@ exports.answerCall = async (req, res) => {
     const call = await VideoCallSession.findById(req.params.callId);
     if (!call) {
       return res.status(404).json({ message: "Call session not found." });
+    }
+
+    if (["Completed", "Cancelled", "Missed"].includes(call.callStatus)) {
+      return res.status(409).json({ message: "This call is no longer active." });
     }
 
     const participant = call.participants.find(

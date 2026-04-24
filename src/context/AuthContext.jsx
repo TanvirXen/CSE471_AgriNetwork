@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { buildApiUrl } from '../config/network';
 
 const AuthContext = createContext();
 
@@ -14,7 +15,7 @@ export const AuthProvider = ({ children }) => {
     const loadUser = async () => {
       if (token) {
         try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+          const res = await fetch(buildApiUrl('/api/auth/me'), {
             headers: {
               'x-auth-token': token
             }

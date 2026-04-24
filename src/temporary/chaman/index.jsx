@@ -14,10 +14,53 @@ import PriceInputPanel from "./components/PriceInputPanel";
 import VideoCallModal from "./components/VideoCallModal";
 
 import { useAuth } from "../../context/AuthContext";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || "";
+import { API_BASE_URL as API_BASE, SOCKET_URL } from "../../config/network";
 const ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
+const MEDIA_SECURE_CONTEXT_MESSAGE =
+  "Camera and microphone permissions require HTTPS or localhost. Open AgriNetwork on https://<your-ip>:5173 or http://localhost:5173 and allow access.";
+
+const getMediaAccessErrorMessage = (error) => {
+  if (typeof window !== "undefined" && !window.isSecureContext) {
+    return MEDIA_SECURE_CONTEXT_MESSAGE;
+  }
+
+  switch (error?.name) {
+    case "NotAllowedError":
+      return "Camera or microphone permission was blocked. Allow access in the browser and try again.";
+    case "NotFoundError":
+      return "No camera or microphone device was found on this device.";
+    case "NotReadableError":
+    case "TrackStartError":
+      return "Camera or microphone is busy in another app. Close that app and retry.";
+    case "SecurityError":
+      return MEDIA_SECURE_CONTEXT_MESSAGE;
+    default:
+      return error?.message || "Unable to access camera or microphone.";
+  }
+};
+
+const getLiveTrackByKind = (stream, kind) =>
+  stream?.getTracks?.().find((track) => track.kind === kind && track.readyState === "live") || null;
+
+const mergeMediaStreams = (...streams) => {
+  const mergedStream = new MediaStream();
+  const seenTrackIds = new Set();
+
+  streams
+    .filter(Boolean)
+    .forEach((stream) =>
+      stream.getTracks().forEach((track) => {
+        if (track.readyState !== "live" || seenTrackIds.has(track.id)) {
+          return;
+        }
+
+        seenTrackIds.add(track.id);
+        mergedStream.addTrack(track);
+      })
+    );
+
+  return mergedStream;
+};
 
 const getMockLivePrice = (cropName) => {
   if (!cropName) return 58;
@@ -29,6 +72,30 @@ const getMockLivePrice = (cropName) => {
   if (c.includes("onion") || c.includes("পেঁয়াজ")) return 50;
   if (c.includes("mango") || c.includes("আম")) return 120;
   return 58; 
+};
+
+const getEntityId = (value) => {
+  const rawValue = value?._id || value?.id || value;
+  return rawValue ? rawValue.toString() : "";
+};
+
+const getVideoCallMessageMeta = ({ call, currentUserId, isSent }) => {
+  const participants = Array.isArray(call?.participants) ? call.participants : [];
+  const currentParticipant = participants.find(
+    (participant) => getEntityId(participant?.userId) === currentUserId
+  );
+  const callStatus = call?.callStatus || "Ongoing";
+
+  return {
+    callId: getEntityId(call),
+    callRoomId: call?.roomId || null,
+    callStatus,
+    callJoined: Boolean(currentParticipant?.joinedAt && !currentParticipant?.leftAt),
+    callCanJoin:
+      !isSent &&
+      ["Scheduled", "Ongoing"].includes(callStatus) &&
+      !currentParticipant?.joinedAt,
+  };
 };
 
 /* ─────────────────────────────────────────────
@@ -152,17 +219,84 @@ function ChatNegotiationPage() {
   const [callDuration, setCallDuration] = useState(0);
   const [iceState, setIceState] = useState("new");
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [joiningCallId, setJoiningCallId] = useState(null);
+  const [callErrorMessage, setCallErrorMessage] = useState("");
+  const [localPreviewStream, setLocalPreviewStream] = useState(null);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const pendingIceCandidatesRef = useRef([]);
   const localStreamRef = useRef(null);
   const remoteStreamRef = useRef(null);
+  const localPreviewStreamRef = useRef(null);
+  const mediaTransceiversRef = useRef({ audio: null, video: null });
   const activeConvRef = useRef(null);
   const callStateRef = useRef(callState);
   const screenStreamRef = useRef(null);
   const callTimerRef = useRef(null);
   const finishCallRef = useRef(null);
+  const cameraOffRef = useRef(isCameraOff);
+  const senderInitials = user?.fullName
+    ? user.fullName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "You";
+
+  const buildVideoCallMessage = useCallback(
+    ({ id, isSent, senderAvatar, text, timestamp, call }) => ({
+      id,
+      type: "video_call",
+      isSent,
+      senderInitials: senderAvatar,
+      text: text || "Video call invitation",
+      timestamp,
+      ...getVideoCallMessageMeta({
+        call,
+        currentUserId: user?._id?.toString() || "",
+        isSent,
+      }),
+    }),
+    [user?._id]
+  );
+
+  const upsertChatMessage = useCallback((nextMessage) => {
+    setMessages((prev) => {
+      const existingIndex = prev.findIndex(
+        (item) => item.id === nextMessage.id || (nextMessage.callId && item.callId === nextMessage.callId)
+      );
+
+      if (existingIndex === -1) {
+        return [...prev, nextMessage];
+      }
+
+      const nextMessages = [...prev];
+      nextMessages[existingIndex] = { ...nextMessages[existingIndex], ...nextMessage };
+      return nextMessages;
+    });
+  }, []);
+
+  const updateCallMessageState = useCallback((callId, changes) => {
+    if (!callId) return;
+
+    setMessages((prev) =>
+      prev.map((message) =>
+        message.callId === callId
+          ? {
+              ...message,
+              ...changes,
+            }
+          : message
+      )
+    );
+  }, []);
+
+  const applyCallState = useCallback((nextStateOrUpdater) => {
+    const nextState =
+      typeof nextStateOrUpdater === "function"
+        ? nextStateOrUpdater(callStateRef.current)
+        : nextStateOrUpdater;
+
+    callStateRef.current = nextState;
+    setCallState(nextState);
+  }, []);
 
   useEffect(() => {
     localStreamRef.current = localStream;
@@ -173,6 +307,10 @@ function ChatNegotiationPage() {
   }, [remoteStream]);
 
   useEffect(() => {
+    localPreviewStreamRef.current = localPreviewStream;
+  }, [localPreviewStream]);
+
+  useEffect(() => {
     activeConvRef.current = activeConv;
   }, [activeConv]);
 
@@ -180,8 +318,58 @@ function ChatNegotiationPage() {
     callStateRef.current = callState;
   }, [callState]);
 
+  useEffect(() => {
+    cameraOffRef.current = isCameraOff;
+  }, [isCameraOff]);
+
   const stopMediaStream = useCallback((stream) => {
     stream?.getTracks?.().forEach((track) => track.stop());
+  }, []);
+
+  const setLocalPreviewTrack = useCallback(
+    (track) => {
+      stopMediaStream(localPreviewStreamRef.current);
+      localPreviewStreamRef.current = null;
+
+      if (!track || track.readyState !== "live" || track.enabled === false) {
+        setLocalPreviewStream(null);
+        return;
+      }
+
+      const previewTrack = track.clone();
+      const previewStream = new MediaStream([previewTrack]);
+      localPreviewStreamRef.current = previewStream;
+      setLocalPreviewStream(previewStream);
+    },
+    [stopMediaStream]
+  );
+
+  const getMediaTransceiver = useCallback((pc, kind, { createIfMissing = true } = {}) => {
+    if (!pc) return null;
+
+    const cachedTransceiver = mediaTransceiversRef.current?.[kind];
+    if (cachedTransceiver && !cachedTransceiver.stopped) {
+      return cachedTransceiver;
+    }
+
+    const existingTransceiver = pc.getTransceivers().find((transceiver) => {
+      const receiverKind = transceiver.receiver?.track?.kind;
+      const senderKind = transceiver.sender?.track?.kind;
+      return receiverKind === kind || senderKind === kind;
+    });
+
+    if (existingTransceiver && !existingTransceiver.stopped) {
+      mediaTransceiversRef.current[kind] = existingTransceiver;
+      return existingTransceiver;
+    }
+
+    if (!createIfMissing) {
+      return null;
+    }
+
+    const nextTransceiver = pc.addTransceiver(kind, { direction: "sendrecv" });
+    mediaTransceiversRef.current[kind] = nextTransceiver;
+    return nextTransceiver;
   }, []);
 
   const resetCallResources = useCallback(() => {
@@ -194,9 +382,15 @@ function ChatNegotiationPage() {
 
     stopMediaStream(localStreamRef.current);
     stopMediaStream(remoteStreamRef.current);
+    stopMediaStream(localPreviewStreamRef.current);
+    localStreamRef.current = null;
+    remoteStreamRef.current = null;
+    localPreviewStreamRef.current = null;
+    mediaTransceiversRef.current = { audio: null, video: null };
     screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     screenStreamRef.current = null;
     setLocalStream(null);
+    setLocalPreviewStream(null);
     setRemoteStream(null);
     setIsMuted(false);
     setIsCameraOff(false);
@@ -212,8 +406,10 @@ function ChatNegotiationPage() {
       peerConnectionRef.current.close();
     }
 
+    mediaTransceiversRef.current = { audio: null, video: null };
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     const incomingRemoteStream = new MediaStream();
+    remoteStreamRef.current = incomingRemoteStream;
     setRemoteStream(incomingRemoteStream);
 
     pc.onicecandidate = (event) => {
@@ -226,32 +422,163 @@ function ChatNegotiationPage() {
     };
 
     pc.ontrack = (event) => {
-      event.streams[0]?.getTracks().forEach((track) => incomingRemoteStream.addTrack(track));
-      setCallState((prev) => ({ ...prev, status: "connected" }));
+      const incomingTracks =
+        event.streams?.[0]?.getTracks?.().length > 0 ? event.streams[0].getTracks() : [event.track];
+
+      incomingTracks.forEach((track) => {
+        if (!incomingRemoteStream.getTracks().some((existingTrack) => existingTrack.id === track.id)) {
+          incomingRemoteStream.addTrack(track);
+        }
+      });
+
+      remoteStreamRef.current = incomingRemoteStream;
+      setRemoteStream(incomingRemoteStream);
+      applyCallState((prev) => ({ ...prev, status: "connected" }));
     };
 
     pc.oniceconnectionstatechange = () => {
       setIceState(pc.iceConnectionState);
       if (pc.iceConnectionState === "failed") {
-        setCallState((prev) => ({ ...prev, status: "error" }));
+        applyCallState((prev) => ({ ...prev, status: "error" }));
       }
     };
 
     peerConnectionRef.current = pc;
     return pc;
-  }, []);
+  }, [applyCallState, getMediaTransceiver]);
 
-  const ensureLocalMedia = useCallback(async () => {
+  const ensureLocalMedia = useCallback(async ({ required = true } = {}) => {
     if (localStreamRef.current) {
-      return localStreamRef.current;
+      const hasLiveAudio = Boolean(getLiveTrackByKind(localStreamRef.current, "audio"));
+      const hasLiveVideo = Boolean(getLiveTrackByKind(localStreamRef.current, "video"));
+      const hasLiveTrack = hasLiveAudio || hasLiveVideo;
+
+      if (hasLiveAudio && hasLiveVideo) {
+        setLocalPreviewTrack(
+          getLiveTrackByKind(screenStreamRef.current, "video") ||
+          getLiveTrackByKind(localStreamRef.current, "video")
+        );
+        return localStreamRef.current;
+      }
+
+      if (!hasLiveTrack) {
+        stopMediaStream(localStreamRef.current);
+        localStreamRef.current = null;
+      }
     }
 
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    setLocalStream(stream);
-    setIsMuted(false);
-    setIsCameraOff(false);
-    return stream;
-  }, []);
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      const secureContextError = new Error(MEDIA_SECURE_CONTEXT_MESSAGE);
+      secureContextError.name = "SecurityError";
+      if (required) {
+        throw secureContextError;
+      }
+      return null;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      if (required) {
+        throw new Error("Camera or microphone access is not supported in this browser.");
+      }
+      return null;
+    }
+
+    let lastError = null;
+    const requestUserMedia = async (constraints) => {
+      try {
+        return await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err) {
+        lastError = err;
+        return null;
+      }
+    };
+
+    let nextStream = localStreamRef.current;
+    const hasReusableTrack = nextStream?.getTracks?.().some((track) => track.readyState === "live");
+
+    if (!hasReusableTrack) {
+      nextStream = await requestUserMedia({ video: true, audio: true });
+    }
+
+    let audioTrack = getLiveTrackByKind(nextStream, "audio");
+    let videoTrack = getLiveTrackByKind(nextStream, "video");
+
+    const supplementalStreams = [];
+
+    if (!videoTrack) {
+      const videoStream = await requestUserMedia({ video: true, audio: false });
+      if (videoStream) {
+        supplementalStreams.push(videoStream);
+        videoTrack = getLiveTrackByKind(videoStream, "video");
+      }
+    }
+
+    if (!audioTrack) {
+      const audioStream = await requestUserMedia({ video: false, audio: true });
+      if (audioStream) {
+        supplementalStreams.push(audioStream);
+        audioTrack = getLiveTrackByKind(audioStream, "audio");
+      }
+    }
+
+    if (supplementalStreams.length > 0) {
+      nextStream = mergeMediaStreams(nextStream, ...supplementalStreams);
+    }
+
+    if (nextStream?.getTracks?.().length) {
+      localStreamRef.current = nextStream;
+      setLocalStream(nextStream);
+      setLocalPreviewTrack(
+        getLiveTrackByKind(screenStreamRef.current, "video") ||
+        getLiveTrackByKind(nextStream, "video")
+      );
+      setIsMuted(!getLiveTrackByKind(nextStream, "audio"));
+      setIsCameraOff(!getLiveTrackByKind(nextStream, "video"));
+      return nextStream;
+    }
+
+    if (required) {
+      throw lastError || new Error("Unable to access camera or microphone.");
+    }
+
+    return null;
+  }, [setLocalPreviewTrack, stopMediaStream]);
+
+  const preparePeerConnectionMedia = useCallback(
+    async (pc) => {
+      const stream = localStreamRef.current || (await ensureLocalMedia({ required: false }));
+      const liveTracks = stream?.getTracks?.().filter((track) => track.readyState === "live") || [];
+      const trackByKind = new Map(liveTracks.map((track) => [track.kind, track]));
+
+      for (const kind of ["audio", "video"]) {
+        const nextTrack = trackByKind.get(kind) || null;
+        let transceiver = getMediaTransceiver(pc, kind, { createIfMissing: false });
+
+        if (!transceiver) {
+          transceiver = nextTrack
+            ? pc.addTransceiver(nextTrack, {
+                direction: "sendrecv",
+                streams: stream ? [stream] : [],
+              })
+            : pc.addTransceiver(kind, { direction: "sendrecv" });
+
+          mediaTransceiversRef.current[kind] = transceiver;
+          continue;
+        }
+
+        const currentTrack = transceiver.sender?.track || null;
+
+        if (currentTrack?.id !== nextTrack?.id) {
+          await transceiver.sender.replaceTrack(nextTrack);
+        }
+
+        transceiver.direction = "sendrecv";
+      }
+
+      return stream;
+    },
+    [ensureLocalMedia, getMediaTransceiver]
+  );
 
   const flushPendingIceCandidates = useCallback(async () => {
     const pc = peerConnectionRef.current;
@@ -292,15 +619,13 @@ function ChatNegotiationPage() {
     [user?._id]
   );
 
-  const sendRoomOffer = useCallback(async (roomId) => {
-    const stream = localStreamRef.current || (await ensureLocalMedia());
+  const sendRoomOffer = useCallback(async (roomId, { syncLocalMedia = true } = {}) => {
     const pc = peerConnectionRef.current || createPeerConnection(roomId);
-
-    if (!pc.getSenders().length) {
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+    if (syncLocalMedia) {
+      await preparePeerConnectionMedia(pc);
     }
 
-    if (pc.localDescription || pc.remoteDescription) return;
+    if (pc.signalingState !== "stable") return;
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
@@ -310,10 +635,14 @@ function ChatNegotiationPage() {
       offer,
     });
 
-    setCallState((prev) =>
-      prev.roomId === roomId ? { ...prev, status: "connecting" } : prev
-    );
-  }, [createPeerConnection, ensureLocalMedia]);
+    applyCallState((prev) => {
+      if (prev.roomId !== roomId || prev.status === "connected") {
+        return prev;
+      }
+
+      return { ...prev, status: "connecting" };
+    });
+  }, [applyCallState, createPeerConnection, preparePeerConnectionMedia]);
 
   // Initialize socket
   useEffect(() => {
@@ -330,29 +659,44 @@ function ChatNegotiationPage() {
         const msgSenderId = (data.senderId || data.sender?._id || data.sender)?.toString();
         const isSentByMe = currentUserId === msgSenderId;
 
-        setMessages((prev) => {
-          if (isSentByMe) return prev;
-          return [
-            ...prev,
-            {
-              id: Date.now(),
-              type: data.type || "text",
+        if (isSentByMe) return;
+
+        const nextTimestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+        if (data.type === "video_call" && data.videoCall) {
+          upsertChatMessage(
+            buildVideoCallMessage({
+              id: data.messageId || data.videoCall.id || data.videoCall._id || Date.now(),
               isSent: false,
-              senderInitials: currentConv?.avatar || "??",
+              senderAvatar: currentConv?.avatar || "??",
               text: data.text,
-              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-              mediaUrl: data.mediaUrl,
-              ...(data.negotiation && {
-                negType: data.negotiation.type,
-                crop: data.negotiation.crop,
-                quantity: data.negotiation.quantity,
-                offerPrice: data.negotiation.offerPrice,
-                marketPrice: data.negotiation.marketPrice || 58,
-                unit: data.negotiation.unit,
-              }),
-            },
-          ];
-        });
+              timestamp: nextTimestamp,
+              call: data.videoCall,
+            })
+          );
+          return;
+        }
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: data.messageId || Date.now(),
+            type: data.type || "text",
+            isSent: false,
+            senderInitials: currentConv?.avatar || "??",
+            text: data.text,
+            timestamp: nextTimestamp,
+            mediaUrl: data.mediaUrl,
+            ...(data.negotiation && {
+              negType: data.negotiation.type,
+              crop: data.negotiation.crop,
+              quantity: data.negotiation.quantity,
+              offerPrice: data.negotiation.offerPrice,
+              marketPrice: data.negotiation.marketPrice || 58,
+              unit: data.negotiation.unit,
+            }),
+          },
+        ]);
       }
     });
 
@@ -405,13 +749,13 @@ function ChatNegotiationPage() {
         if (currentCall.isHost) {
           await sendRoomOffer(data.roomId);
         } else {
-          setCallState((prev) =>
+          applyCallState((prev) =>
             prev.roomId === data.roomId ? { ...prev, status: "connecting" } : prev
           );
         }
       } catch (err) {
         console.error("Failed to create room offer:", err);
-        setCallState((prev) =>
+        applyCallState((prev) =>
           prev.roomId === data.roomId ? { ...prev, status: "error" } : prev
         );
       }
@@ -423,16 +767,16 @@ function ChatNegotiationPage() {
 
       try {
         const pc = peerConnectionRef.current || createPeerConnection(data.roomId);
-        const stream = localStreamRef.current || (await ensureLocalMedia());
+        await preparePeerConnectionMedia(pc);
+        const incomingOffer = new RTCSessionDescription(data.offer);
 
-        if (!pc.getSenders().length) {
-          stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+        if (pc.signalingState !== "stable") {
+          console.warn("Ignoring renegotiation offer in non-stable state:", pc.signalingState);
+          return;
         }
 
-        if (!pc.remoteDescription) {
-          await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-          await flushPendingIceCandidates();
-        }
+        await pc.setRemoteDescription(incomingOffer);
+        await flushPendingIceCandidates();
 
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
@@ -442,12 +786,12 @@ function ChatNegotiationPage() {
           answer,
         });
 
-        setCallState((prev) =>
+        applyCallState((prev) =>
           prev.roomId === data.roomId ? { ...prev, status: "connecting" } : prev
         );
       } catch (err) {
         console.error("Failed to handle room offer:", err);
-        setCallState((prev) =>
+        applyCallState((prev) =>
           prev.roomId === data.roomId ? { ...prev, status: "error" } : prev
         );
       }
@@ -463,7 +807,7 @@ function ChatNegotiationPage() {
         await flushPendingIceCandidates();
       } catch (err) {
         console.error("Failed to apply room answer:", err);
-        setCallState((prev) =>
+        applyCallState((prev) =>
           prev.roomId === data.roomId ? { ...prev, status: "error" } : prev
         );
       }
@@ -488,12 +832,28 @@ function ChatNegotiationPage() {
     socketRef.current.on("video_call_ended", (data) => {
       const currentCall = callStateRef.current;
       if (!currentCall?.roomId || (data?.roomId && data.roomId !== currentCall.roomId)) return;
+      updateCallMessageState(currentCall.callId, {
+        callStatus: "Completed",
+        callCanJoin: false,
+      });
       finishCallRef.current?.("completed", false);
     });
 
     return () => socketRef.current?.disconnect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, createPeerConnection, ensureLocalMedia, flushPendingIceCandidates, resetCallResources, sendRoomOffer]);
+  }, [
+    user,
+    buildVideoCallMessage,
+    createPeerConnection,
+    ensureLocalMedia,
+    flushPendingIceCandidates,
+    preparePeerConnectionMedia,
+    resetCallResources,
+    sendRoomOffer,
+    updateCallMessageState,
+    upsertChatMessage,
+    applyCallState,
+  ]);
 
   // Handle incoming chat request from Map
   useEffect(() => {
@@ -551,10 +911,6 @@ function ChatNegotiationPage() {
     return () => clearInterval(callTimerRef.current);
   }, [callState.status]);
 
-  const senderInitials = user?.fullName
-    ? user.fullName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "You";
-
   const handleStartVideoCall = useCallback(async () => {
     if (
       !token ||
@@ -568,6 +924,9 @@ function ChatNegotiationPage() {
     }
 
     try {
+      await ensureLocalMedia({ required: true });
+      setCallErrorMessage("");
+
       const res = await fetch(`${API_BASE}/api/messages/calls/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-auth-token": token },
@@ -584,8 +943,52 @@ function ChatNegotiationPage() {
       }
 
       const call = payload.call;
+      const inviteMessage = payload.inviteMessage;
+      const resolvedConversationId = call.conversationId || activeConv?.conversationId || activeConv?.id;
 
-      setCallState({
+      if (resolvedConversationId) {
+        if (activeConv?.id?.startsWith("map-")) {
+          const updatedConv = {
+            ...activeConv,
+            id: resolvedConversationId,
+            conversationId: resolvedConversationId,
+          };
+          setActiveConv(updatedConv);
+          setExtraConvs((prev) => prev.map((conv) => (conv.id === activeConv.id ? updatedConv : conv)));
+        } else if (!activeConv?.conversationId) {
+          setActiveConv((prev) => (prev ? { ...prev, conversationId: resolvedConversationId } : prev));
+        }
+
+        socketRef.current?.emit("join_conversation", resolvedConversationId);
+      }
+
+      if (inviteMessage?.videoCallId) {
+        upsertChatMessage(
+          buildVideoCallMessage({
+            id: inviteMessage._id,
+            isSent: true,
+            senderAvatar: senderInitials,
+            text: inviteMessage.text,
+            timestamp: new Date(inviteMessage.createdAt || Date.now()).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            call: inviteMessage.videoCallId,
+          })
+        );
+
+        socketRef.current?.emit("send_message", {
+          messageId: inviteMessage._id,
+          conversationId: resolvedConversationId,
+          senderId: user?._id,
+          receiverId: activeConv.userId,
+          type: "video_call",
+          text: inviteMessage.text,
+          videoCall: inviteMessage.videoCallId,
+        });
+      }
+
+      applyCallState({
         isOpen: true,
         status: "waiting",
         callId: call.id,
@@ -595,9 +998,11 @@ function ChatNegotiationPage() {
       });
 
       const roomJoin = await joinCallRoom(call.roomId);
-      const isHost = Number(roomJoin?.participantCount || 1) <= 1;
+      const isHost =
+        getEntityId(call.createdBy) === user?._id?.toString() ||
+        Number(roomJoin?.participantCount || 1) <= 1;
 
-      setCallState({
+      applyCallState({
         isOpen: true,
         status: isHost ? "waiting" : "connecting",
         callId: call.id,
@@ -607,8 +1012,9 @@ function ChatNegotiationPage() {
       });
     } catch (err) {
       console.error("Failed to start video call:", err);
+      setCallErrorMessage(getMediaAccessErrorMessage(err));
       resetCallResources();
-      setCallState({
+      applyCallState({
         isOpen: true,
         status: "error",
         callId: null,
@@ -617,7 +1023,7 @@ function ChatNegotiationPage() {
         isHost: false,
       });
       setTimeout(() => {
-        setCallState({
+        applyCallState({
           isOpen: false,
           status: "idle",
           callId: null,
@@ -627,11 +1033,94 @@ function ChatNegotiationPage() {
         });
       }, 1800);
     }
-  }, [activeConv, callState.isOpen, callState.status, joinCallRoom, resetCallResources, token, user]);
+  }, [
+    activeConv,
+    buildVideoCallMessage,
+    callState.isOpen,
+    callState.status,
+    ensureLocalMedia,
+    joinCallRoom,
+    resetCallResources,
+    senderInitials,
+    token,
+    upsertChatMessage,
+    applyCallState,
+    user,
+  ]);
+
+  const handleJoinVideoCall = useCallback(async (message) => {
+    if (!token || !message?.callId || callState.isOpen) {
+      return;
+    }
+
+    setJoiningCallId(message.callId);
+
+    try {
+      await ensureLocalMedia({ required: true });
+      setCallErrorMessage("");
+
+      const res = await fetch(`${API_BASE}/api/messages/calls/${message.callId}/answer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+      });
+
+      const payload = await res.json();
+      if (!res.ok) {
+        throw new Error(payload.message || "Failed to join video call.");
+      }
+
+      const call = payload.call;
+
+      if (call.conversationId) {
+        socketRef.current?.emit("join_conversation", call.conversationId);
+      }
+
+      updateCallMessageState(call.id, {
+        ...getVideoCallMessageMeta({
+          call,
+          currentUserId: user?._id?.toString() || "",
+          isSent: false,
+        }),
+      });
+
+      applyCallState({
+        isOpen: true,
+        status: "connecting",
+        callId: call.id,
+        roomId: call.roomId,
+        conversationId: call.conversationId,
+        isHost: false,
+      });
+
+      const roomJoin = await joinCallRoom(call.roomId);
+      applyCallState((prev) =>
+        prev.callId === call.id
+          ? {
+              ...prev,
+              status: Number(roomJoin?.participantCount || 0) > 1 ? "connecting" : "waiting",
+            }
+          : prev
+      );
+    } catch (err) {
+      console.error("Failed to join video call:", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `call-error-${Date.now()}`,
+          type: "status",
+          text: getMediaAccessErrorMessage(err),
+        },
+      ]);
+    } finally {
+      setJoiningCallId(null);
+    }
+  }, [callState.isOpen, ensureLocalMedia, joinCallRoom, token, updateCallMessageState, applyCallState, user?._id]);
 
   const finishCall = useCallback(async (reason = "completed", notifyPeer = true) => {
     const currentCallId = callState.callId;
     const currentRoomId = callState.roomId;
+    const nextCallStatus =
+      reason === "declined" ? "Cancelled" : reason === "missed" ? "Missed" : "Completed";
 
     if (notifyPeer && currentRoomId) {
       socketRef.current?.emit("video_call_ended", {
@@ -659,8 +1148,14 @@ function ChatNegotiationPage() {
       }
     }
 
+    updateCallMessageState(currentCallId, {
+      callStatus: nextCallStatus,
+      callCanJoin: false,
+    });
+    setJoiningCallId(null);
+    setCallErrorMessage("");
     resetCallResources();
-    setCallState({
+    applyCallState({
       isOpen: false,
       status: "idle",
       callId: null,
@@ -668,7 +1163,7 @@ function ChatNegotiationPage() {
       conversationId: null,
       isHost: false,
     });
-  }, [callState.callId, callState.roomId, resetCallResources, token, user?._id]);
+  }, [callState.callId, callState.roomId, resetCallResources, token, updateCallMessageState, applyCallState, user?._id]);
 
   useEffect(() => {
     finishCallRef.current = finishCall;
@@ -681,9 +1176,9 @@ function ChatNegotiationPage() {
   }, [callState.status]);
 
   const handleEndVideoCall = useCallback(async () => {
-    setCallState((prev) => ({ ...prev, status: "ending" }));
+    applyCallState((prev) => ({ ...prev, status: "ending" }));
     await finishCall("completed", true);
-  }, [finishCall]);
+  }, [finishCall, applyCallState]);
 
   const handleToggleMute = useCallback(() => {
     if (!localStream) return;
@@ -700,43 +1195,62 @@ function ChatNegotiationPage() {
     localStream.getVideoTracks().forEach((track) => {
       track.enabled = !nextCameraOff;
     });
+    if (!isScreenSharing) {
+      setLocalPreviewTrack(nextCameraOff ? null : getLiveTrackByKind(localStream, "video"));
+    }
     setIsCameraOff(nextCameraOff);
-  }, [isCameraOff, localStream]);
+  }, [isCameraOff, isScreenSharing, localStream, setLocalPreviewTrack]);
 
   const handleToggleScreenShare = useCallback(async () => {
     if (!peerConnectionRef.current || callState.status !== "connected") return;
+
+    const videoTransceiver = getMediaTransceiver(peerConnectionRef.current, "video");
+    const videoSender = videoTransceiver?.sender;
+    if (!videoSender) return;
 
     if (isScreenSharing) {
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current = null;
       const camTrack = localStreamRef.current?.getVideoTracks()[0];
-      if (camTrack) {
-        const sender = peerConnectionRef.current.getSenders().find((s) => s.track?.kind === "video");
-        if (sender) await sender.replaceTrack(camTrack);
-      }
+      const restoredTrack = cameraOffRef.current ? null : camTrack || null;
+      await videoSender.replaceTrack(restoredTrack);
+      setLocalPreviewTrack(restoredTrack);
+      await sendRoomOffer(callStateRef.current.roomId, { syncLocalMedia: false });
       setIsScreenSharing(false);
     } else {
       try {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
         screenStreamRef.current = screenStream;
         const screenTrack = screenStream.getVideoTracks()[0];
-        const sender = peerConnectionRef.current.getSenders().find((s) => s.track?.kind === "video");
-        if (sender) await sender.replaceTrack(screenTrack);
+        if (screenTrack) {
+          screenTrack.contentHint = "detail";
+        }
+        await videoSender.replaceTrack(screenTrack);
+        setLocalPreviewTrack(screenTrack);
+        await sendRoomOffer(callStateRef.current.roomId, { syncLocalMedia: false });
         screenTrack.onended = () => {
           screenStreamRef.current = null;
           const camTrack2 = localStreamRef.current?.getVideoTracks()[0];
-          if (camTrack2 && peerConnectionRef.current) {
-            const s = peerConnectionRef.current.getSenders().find((x) => x.track?.kind === "video");
-            if (s) s.replaceTrack(camTrack2);
+          const restoredTrack = cameraOffRef.current ? null : camTrack2 || null;
+          const activeVideoSender = getMediaTransceiver(peerConnectionRef.current, "video")?.sender;
+          if (activeVideoSender) {
+            activeVideoSender.replaceTrack(restoredTrack);
+          }
+          setLocalPreviewTrack(restoredTrack);
+          if (callStateRef.current?.roomId) {
+            sendRoomOffer(callStateRef.current.roomId, { syncLocalMedia: false }).catch((error) => {
+              console.error("Failed to renegotiate after screen share ended:", error);
+            });
           }
           setIsScreenSharing(false);
         };
         setIsScreenSharing(true);
       } catch (err) {
         console.error("Screen share failed:", err);
+        setCallErrorMessage(getMediaAccessErrorMessage(err));
       }
     }
-  }, [callState.status, isScreenSharing]);
+  }, [callState.status, getMediaTransceiver, isScreenSharing, sendRoomOffer, setLocalPreviewTrack]);
 
   // Load messages from backend when switching convos
   const loadBackendMessages = useCallback(async (convId) => {
@@ -753,6 +1267,23 @@ function ChatNegotiationPage() {
           data.map((m) => {
             const senderIdStr = (m.sender?._id || m.sender).toString();
             const isSentByMe = senderIdStr === user?._id?.toString();
+
+            if (m.type === "video_call" && m.videoCallId) {
+              return buildVideoCallMessage({
+                id: m._id,
+                isSent: isSentByMe,
+                senderAvatar: isSentByMe
+                  ? senderInitials
+                  : (m.sender?.fullName?.slice(0, 2).toUpperCase() || "??"),
+                text: m.text || "",
+                timestamp: new Date(m.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+                call: m.videoCallId,
+              });
+            }
+
             return {
               id: m._id,
               type: m.type,
@@ -779,7 +1310,7 @@ function ChatNegotiationPage() {
     } finally {
       setLoadingMessages(false);
     }
-  }, [token, user, senderInitials]);
+  }, [buildVideoCallMessage, token, user, senderInitials]);
 
   const handleSelectConv = (conv) => {
     setActiveConv(conv);
@@ -1104,6 +1635,9 @@ function ChatNegotiationPage() {
                       onAcceptOffer={handleAcceptOffer}
                       onRejectOffer={handleRejectOffer}
                       onCounterOffer={handleCounterOffer}
+                      onJoinVideoCall={handleJoinVideoCall}
+                      joiningCallId={joiningCallId}
+                      activeCallId={callState.callId}
                     />
                   ))
                 )}
@@ -1152,13 +1686,14 @@ function ChatNegotiationPage() {
         isOpen={callState.isOpen}
         status={callState.status}
         conversation={activeConv}
-        localStream={localStream}
+        localStream={localPreviewStream}
         remoteStream={remoteStream}
         isMuted={isMuted}
         isCameraOff={isCameraOff}
         isScreenSharing={isScreenSharing}
         callDuration={callDuration}
         iceState={iceState}
+        errorMessage={callErrorMessage}
         onEnd={handleEndVideoCall}
         onToggleMute={handleToggleMute}
         onToggleCamera={handleToggleCamera}

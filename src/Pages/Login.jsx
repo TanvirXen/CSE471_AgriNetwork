@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Leaf, Phone, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { buildApiUrl } from '../config/network';
 import '../CSS/Auth.css';
 
 const Login = () => {
@@ -20,7 +21,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
+      const res = await fetch(buildApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, password })

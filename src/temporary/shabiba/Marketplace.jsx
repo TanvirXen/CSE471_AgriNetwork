@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CategorySidebar from './components/CategorySidebar';
 import { useAuth } from '../../context/AuthContext';
+import { buildApiUrl } from '../../config/network';
 
 import './Marketplace.css';
 
@@ -21,7 +22,7 @@ const Marketplace = () => {
     const [liveViewerCount, setLiveViewerCount] = useState(0);
     const [chatInput, setChatInput] = useState('');
 
-    const API_BASE_URL = 'http://localhost:5000/api/market';
+    const API_BASE_URL = buildApiUrl('/api/market');
 
     const handleStreamClick = async (stream) => {
         // Optimistically open modal

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+import { API_BASE_URL } from '../config/network';
 import 'leaflet/dist/leaflet.css';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -23,8 +24,6 @@ const LocationMarker = ({ position, setPosition }) => {
   });
   return position ? <Marker position={[position[1], position[0]]} /> : null;
 };
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const CartCheckoutModal = () => {
   const { cart, removeFromCart, clearCart, cartTotal, isCartOpen, setIsCartOpen, updateQuantity } = useCart();

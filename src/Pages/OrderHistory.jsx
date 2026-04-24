@@ -9,8 +9,7 @@ import CancelRefundModal from '../Components/CancelRefundModal';
 import DeliveryTrackingMap from '../Components/DeliveryTrackingMap';
 import ReviewModal from '../Components/ReviewModal';
 import { useNavigate } from 'react-router-dom';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+import { API_BASE_URL } from '../config/network';
 
 const STATUS_COLORS = {
   'Pending': 'status-pending',

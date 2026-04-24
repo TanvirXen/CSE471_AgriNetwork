@@ -4,8 +4,7 @@ import { MapPin, Tag, Package, AlertCircle, CheckCircle, ArrowLeft, Phone, Calen
 import '../CSS/CropMarketplace.css';
 import { useCart } from '../context/CartContext';
 import VendorReviews from '../Components/VendorReviews';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+import { API_BASE_URL } from '../config/network';
 
 export default function CropDetails() {
     const { id } = useParams();

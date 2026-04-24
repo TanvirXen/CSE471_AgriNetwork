@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Flag, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+import { API_BASE_URL } from '../config/network';
 
 export default function VendorReviews({ vendorId, productId }) {
   const [reviews, setReviews] = useState([]);

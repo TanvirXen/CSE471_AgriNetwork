@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
+import { API_BASE_URL as API_BASE } from "../../../config/network";
 
 function ChatSidebar({ activeId, onSelect, isOpen, extraConversations = [] }) {
     const { token } = useAuth();

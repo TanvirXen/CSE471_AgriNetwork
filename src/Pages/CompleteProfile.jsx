@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Leaf, Store, User, MapPin, Phone, Briefcase, Camera } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { buildApiUrl } from '../config/network';
 import '../CSS/Auth.css';
 
 const CompleteProfile = () => {
@@ -51,7 +52,7 @@ const CompleteProfile = () => {
     setError('');
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/profile`, {
+      const res = await fetch(buildApiUrl('/api/users/profile'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
