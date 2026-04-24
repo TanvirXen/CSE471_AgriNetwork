@@ -296,7 +296,25 @@ const DashboardProfile = () => {
           <form className="auth-form" onSubmit={(e) => e.preventDefault()}>
             <div className="profile-grid">
               <div className="form-group">
-                <label className="form-label">Full Name</label>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  Full Name
+                  {user?.isVerified && (
+                    <span style={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '4px', 
+                      backgroundColor: '#dcfce7', 
+                      color: '#166534', 
+                      padding: '2px 8px', 
+                      borderRadius: '12px', 
+                      fontSize: '0.7rem', 
+                      fontWeight: '700',
+                      textTransform: 'uppercase'
+                    }}>
+                      <Check size={10} strokeWidth={4} /> Verified
+                    </span>
+                  )}
+                </label>
                 <input 
                   type="text" 
                   className="form-input" 

@@ -46,7 +46,7 @@ const ListingPricingSchema = new mongoose.Schema(
 const FarmerListingSchema = new mongoose.Schema(
   {
     sellerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true, index: true },
+    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: false, index: true },
 
     title: { type: String, required: true, trim: true, index: true },
     description: { type: String, trim: true, maxlength: 3000 },

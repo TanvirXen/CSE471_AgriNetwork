@@ -24,6 +24,12 @@ function App() {
             <Link to="/marketplace">Marketplace</Link>
           </li>
           <li>
+            <Link to="/dashboard/listings">Farmer Product Listings</Link>
+          </li>
+          <li>
+            <Link to="/dashboard/buy-requests">Vendor Buy Requests</Link>
+          </li>
+          <li>
             <Link to="/sumaiya/CropMarketplace">Sumaiya CropMarketplace</Link>
           </li>
           <li>

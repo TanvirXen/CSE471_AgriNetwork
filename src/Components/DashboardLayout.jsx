@@ -18,6 +18,9 @@ import {
   Shield,
   Sprout,
   CreditCard,
+  ClipboardList,
+  Inbox,
+  Check,
 } from 'lucide-react';
 import '../CSS/Dashboard.css';
 
@@ -51,6 +54,8 @@ const DashboardLayout = () => {
     { name: 'Escrow', path: '/dashboard/escrow', icon: <Shield size={20} /> },
     { name: 'Payment', path: '/dashboard/payment', icon: <CreditCard size={20} /> },
     { name: 'Orders', path: '/dashboard/orders', icon: <ShoppingBag size={20} /> },
+    { name: 'Farmer Listings', path: '/dashboard/listings', icon: <ClipboardList size={20} /> },
+    { name: 'Vendor Buy Requests', path: '/dashboard/buy-requests', icon: <Inbox size={20} /> },
     { name: 'Messages', path: '/dashboard/messages', icon: <MessageSquare size={20} /> },
     { name: 'AgriDiscovery Map', path: '/dashboard/map', icon: <Map size={20} /> },
     { name: 'Settings', path: '/dashboard/settings', icon: <Settings size={20} /> },
@@ -145,7 +150,14 @@ const DashboardLayout = () => {
             <div className="user-profile-toggle">
               <div className="avatar-small">{userInitials}</div>
               <div style={{ textAlign: 'left', display: 'none', md: 'block' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700' }}>{user?.fullName || 'Guest'}</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {user?.fullName || 'Guest'}
+                  {user?.isVerified && (
+                    <div style={{ background: '#22c55e', borderRadius: '50%', padding: '2px', display: 'flex', justifyContent: 'center', alignItems: 'center' }} title="Verified User">
+                      <Check size={10} color="white" strokeWidth={3} />
+                    </div>
+                  )}
+                </div>
                 <div style={{ fontSize: '0.75rem', color: '#888' }}>{user?.role || 'User'}</div>
               </div>
             </div>

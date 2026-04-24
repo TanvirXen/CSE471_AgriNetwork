@@ -117,6 +117,18 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("join_marketplace_stream", (streamId) => {
+    socket.join(`stream_${streamId}`);
+    console.log(`User joined marketplace stream: stream_${streamId}`);
+  });
+
+  socket.on("stream_frame", (data) => {
+    // Relay frame to everyone in the specific stream room
+    if (data.streamId && data.frame) {
+      socket.to(`stream_${data.streamId}`).emit("receive_stream_frame", data.frame);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected");
   });

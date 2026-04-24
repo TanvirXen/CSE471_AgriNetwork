@@ -311,3 +311,45 @@
     border: 1px solid #ddd;
     border-radius: 8px;
 }
+
+/* Product Card Actions */
+.product-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.add-to-cart-btn {
+    flex: 1;
+    padding: 8px;
+    background: var(--primary-main);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 0.85rem;
+}
+
+.add-to-cart-btn:hover {
+    background: var(--primary-dark);
+}
+
+.join-live-btn {
+    flex: 1;
+    padding: 8px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    animation: pulse 2s infinite;
+    font-size: 0.85rem;
+}
+
+.join-live-btn:hover {
+    background: #dc2626;
+}

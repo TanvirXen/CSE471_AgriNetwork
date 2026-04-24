@@ -35,7 +35,15 @@ const DashboardOverview = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h2 style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--primary-dark)' }}>Dashboard Overview</h2>
-          <p style={{ color: 'var(--secondary)' }}>Welcome back, John! Here's what's happening with your agri-business.</p>
+          <p style={{ color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            Welcome back, {_user?.fullName || 'User'}! 
+            {_user?.isVerified && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}>
+                <CheckCircle2 size={12} /> Verified
+              </span>
+            )}
+            Here's what's happening with your agri-business.
+          </p>
         </div>
         <button 
           onClick={() => navigate('/marketplace')}

@@ -12,6 +12,9 @@ const chatbotRoutes = require("./routes/chatbotRoutes");
 const cropRoutes = require("./routes/cropRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const listingRoutes = require("./routes/listingRoutes");
+const buyRequestRoutes = require("./routes/buyRequestRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -61,6 +64,9 @@ app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/crops", cropRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/listings", listingRoutes);
+app.use("/api/buy-requests", buyRequestRoutes);
+app.use("/api/admin", adminRoutes);
 
 module.exports = app;
 

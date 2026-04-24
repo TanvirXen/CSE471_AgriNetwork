@@ -25,6 +25,7 @@ const BuyRequestSchema = new mongoose.Schema(
   {
     vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true, index: true },
+    linkedListingId: { type: mongoose.Schema.Types.ObjectId, ref: "FarmerListing" },
 
     title: { type: String, required: true, trim: true },
     productName: { type: String, required: true, trim: true, index: true },

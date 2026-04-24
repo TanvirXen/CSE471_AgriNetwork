@@ -3,13 +3,18 @@ import CategorySidebar from './components/CategorySidebar';
 import { useAuth } from '../../context/AuthContext';
 
 import './Marketplace.css';
+import { io } from 'socket.io-client';
 
 const Marketplace = () => {
     const { user } = useAuth();
     const videoRef = useRef(null);
+    const canvasRef = useRef(null);
+    const socketRef = useRef(null);
+    
     const [isBroadcasting, setIsBroadcasting] = useState(false);
     const [dbStreamId, setDbStreamId] = useState(null);
     const [cameraError, setCameraError] = useState(false);
+    const [liveFrame, setLiveFrame] = useState(null);
 
     const [activeCategory, setActiveCategory] = useState('all');
     const [activeSegment, setActiveSegment] = useState('all');
@@ -23,9 +28,27 @@ const Marketplace = () => {
 
     const API_BASE_URL = 'http://localhost:5000/api/market';
 
+    // Initialize Socket Connection
+    useEffect(() => {
+        socketRef.current = io('http://localhost:5000');
+        
+        socketRef.current.on('receive_stream_frame', (frame) => {
+            setLiveFrame(frame);
+        });
+
+        return () => {
+            if (socketRef.current) socketRef.current.disconnect();
+        };
+    }, []);
+
     const handleStreamClick = async (stream) => {
         // Optimistically open modal
         setActiveStream(stream);
+        setLiveFrame(null); // Reset frame for new stream
+        
+        if (socketRef.current) {
+            socketRef.current.emit('join_marketplace_stream', stream._id || stream.id);
+        }
         try {
             const streamId = stream._id || stream.id;
             const response = await fetch(`${API_BASE_URL}/streams/${streamId}`);
@@ -36,6 +59,26 @@ const Marketplace = () => {
             }
         } catch (error) {
             console.error("Error fetching stream details:", error);
+        }
+    };
+
+    const handleAddToCart = (product) => {
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        if (!cart.find(item => (item._id || item.id) === (product._id || product.id))) {
+            cart.push(product);
+            localStorage.setItem('cart', JSON.stringify(cart));
+            alert('Added to cart!');
+        } else {
+            alert('Item already in cart!');
+        }
+    };
+
+    const handleJoinLive = (product) => {
+        const stream = streams.find(s => s.vendorId === product.vendorId);
+        if (stream) {
+            handleStreamClick(stream);
+        } else {
+            alert('This vendor is not currently live or the stream has ended.');
         }
     };
 
@@ -235,6 +278,35 @@ const Marketplace = () => {
         return () => clearInterval(globalStreamInterval);
     }, []);
 
+    // [NEW] Frame capturing logic for vendors
+    useEffect(() => {
+        let captureInterval;
+        if (isBroadcasting && dbStreamId && videoRef.current && canvasRef.current) {
+            captureInterval = setInterval(() => {
+                const video = videoRef.current;
+                const canvas = canvasRef.current;
+                const context = canvas.getContext('2d');
+
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.width = 640;
+                    canvas.height = 480;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    // Compress to low quality JPEG for fast transmission
+                    const frame = canvas.toDataURL('image/jpeg', 0.4);
+                    
+                    if (socketRef.current) {
+                        socketRef.current.emit('stream_frame', {
+                            streamId: dbStreamId,
+                            frame: frame
+                        });
+                    }
+                }
+            }, 100); // 10 FPS
+        }
+        return () => clearInterval(captureInterval);
+    }, [isBroadcasting, dbStreamId]);
+
     // Fetch products whenever category or segment changes
     useEffect(() => {
         const fetchProducts = async () => {
@@ -289,7 +361,7 @@ const Marketplace = () => {
                         <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444', margin: 0, fontSize: '1.2rem' }}>
                             <span style={{ color: '#ef4444', animation: 'pulse 2s infinite' }}>●</span> Live From the Farm
                         </h3>
-                        {user?.role?.toLowerCase() === 'vendor' && (
+                        {(user?.role?.toLowerCase() === 'vendor' || user?.role?.toLowerCase() === 'farmer') && (
                             <button 
                                 onClick={startVendorBroadcast}
                                 style={{ background: '#059669', color: 'white', padding: '8px 16px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center', gap: '5px' }}
@@ -349,10 +421,10 @@ const Marketplace = () => {
                                 >
                                     <div style={{ height: '180px', position: 'relative' }}>
                                         <img 
-                                            src={product.image} 
+                                            src={product.image.startsWith('http') ? product.image : `http://localhost:5000${product.image}`} 
                                             alt={product.name} 
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                            onError={(e) => { e.target.src = "https://via.placeholder.com/300?text=Agro+Product"; }} 
+                                            onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=500"; }} 
                                         />
                                         <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(255,255,255,0.9)', padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', color: '#2d4a3e' }}>
                                             Grade {product.quality}
@@ -365,6 +437,13 @@ const Marketplace = () => {
                                         <div style={{ color: '#588157', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>{product.segment}</div>
                                         <h4 style={{ margin: '8px 0', fontSize: '1.05rem', color: '#0f172a', fontWeight: '700' }}>{product.name}</h4>
                                         <div style={{ color: '#3a5a40', fontWeight: '800', fontSize: '1.25rem', marginTop: '12px' }}>৳{product.price?.toLocaleString()}</div>
+                                        
+                                        <div className="product-actions">
+                                            <button className="add-to-cart-btn" onClick={() => handleAddToCart(product)}>Add to Cart</button>
+                                            {product.isLive && (
+                                                <button className="join-live-btn" onClick={() => handleJoinLive(product)}>Join Live</button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -411,6 +490,7 @@ const Marketplace = () => {
                                         playsInline 
                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                                     />
+                                    <canvas ref={canvasRef} style={{ display: 'none' }} />
                                     {cameraError && (
                                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1', background: 'rgba(0,0,0,0.85)' }}>
                                             <span style={{ fontSize: '3rem', marginBottom: '10px' }}>📷</span>
@@ -418,6 +498,32 @@ const Marketplace = () => {
                                             <span>Camera is required to go live. Audio & Text Chat active.</span>
                                         </div>
                                     )}
+                                </div>
+                            ) : (activeStream.isLive || liveFrame) ? (
+                                <div style={{ position: 'relative', width: '100%', height: '100%', background: 'black' }}>
+                                    {liveFrame ? (
+                                        <img 
+                                            src={liveFrame} 
+                                            alt="Live Stream" 
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                        />
+                                    ) : (
+                                        <video 
+                                            autoPlay 
+                                            loop 
+                                            muted 
+                                            playsInline 
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        >
+                                            <source src="https://player.vimeo.com/external/434045526.sd.mp4?s=c27cf3419018c14ca5505e2f67469ebf4a698814&profile_id=164&oauth2_token_id=57447761" type="video/mp4" />
+                                        </video>
+                                    )}
+                                    <div style={{ position: 'absolute', inset: 0, background: liveFrame ? 'transparent' : 'rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', textAlign: 'center', pointerEvents: 'none' }}>
+                                        <div className="live-indicator" style={{ background: '#ef4444', padding: '8px 16px', borderRadius: '30px', fontWeight: 'bold', fontSize: '1rem', marginBottom: '10px', boxShadow: '0 0 15px rgba(239, 68, 68, 0.4)', border: '2px solid rgba(255,255,255,0.2)' }}>
+                                            LIVE FEED: {activeStream.host?.toUpperCase() || 'FARM'}
+                                        </div>
+                                        {!liveFrame && <p style={{ opacity: 0.8, fontSize: '0.9rem', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>Encrypted P2P Connection Active</p>}
+                                    </div>
                                 </div>
                             ) : activeStream.streamUrl ? (
                                 <iframe 

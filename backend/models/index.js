@@ -3,6 +3,8 @@ module.exports = {
   UserVerification: require("./UserVerification"),
   Category: require("./Category"),
   FarmerListing: require("./FarmerListing"),
+  MarketProduct: require("./MarketProduct"),
+  MarketListing: require("./MarketListing"),
   BuyRequest: require("./BuyRequest"),
   Conversation: require("./Conversation"),
   Message: require("./Message"),

@@ -12,6 +12,8 @@ import CropDetails from './Pages/CropDetails.jsx'
 import OrderHistory from './Pages/OrderHistory.jsx'
 import Marketplace from './temporary/shabiba/Marketplace.jsx'
 import Verification from './temporary/shabiba/Verification.jsx'
+import FarmerProductListings from './temporary/shabiba/FarmerProductListings.jsx'
+import VendorBuyRequests from './temporary/shabiba/VendorBuyRequests.jsx'
 import Login from './Pages/Login'
 import Signup from './Pages/Signup'
 import ForgotPassword from './Pages/ForgotPassword'
@@ -80,6 +82,8 @@ createRoot(document.getElementById('root')).render(
               <Route path="escrow" element={<EscrowDashboard />} />
               <Route path="payment" element={<PaymentPage />} />
               <Route path="orders" element={<OrderHistory />} />
+              <Route path="listings" element={<FarmerProductListings />} />
+              <Route path="buy-requests" element={<VendorBuyRequests />} />
               <Route path="messages" element={<ChamanPage />} />
               <Route path="map" element={<SearchMapPage />} />
               <Route path="settings" element={<div className="dashboard-content"><h3>Settings Page (Coming Soon)</h3></div>} />
