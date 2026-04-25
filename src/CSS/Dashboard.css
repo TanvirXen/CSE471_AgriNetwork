@@ -154,6 +154,19 @@
   overflow: hidden;
 }
 
+.dashboard-content.dashboard-content--messages {
+  padding: 0;
+  height: calc(100vh - 70px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-content.dashboard-content--messages > * {
+  flex: 1;
+  min-height: 0;
+}
+
 .dashboard-content.dashboard-content--chatbot .chatbot-page-container {
   height: 100%;
   border-radius: 0;

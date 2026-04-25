@@ -153,7 +153,7 @@ const DashboardLayout = () => {
           </div>
         </header>
 
-        <section className="dashboard-content">
+        <section className={`dashboard-content${location.pathname === '/dashboard/messages' ? ' dashboard-content--messages' : ''}`}>
           <Outlet />
         </section>
       </main>

@@ -1670,12 +1670,35 @@
    RESPONSIVE
    ============================================================ */
 @media (max-width: 768px) {
-  .cn-layout {
-    position: relative;
-    height: calc(100vh - 108px);
+  .cn-page {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 
-  .cn-sidebar {
+  .cn-layout {
+    position: relative;
+    height: auto;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* No active conversation — sidebar fills full screen */
+  .cn-layout:not(.cn-layout--conv-open) .cn-sidebar {
+    position: relative;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    box-shadow: none;
+    z-index: 1;
+  }
+
+  .cn-layout:not(.cn-layout--conv-open) .cn-chat {
+    display: none;
+  }
+
+  /* Active conversation — sidebar slides over as overlay */
+  .cn-layout.cn-layout--conv-open .cn-sidebar {
     position: absolute;
     top: 0;
     left: 0;
@@ -1686,7 +1709,7 @@
     box-shadow: 4px 0 20px rgba(52,78,65,0.15);
   }
 
-  .cn-sidebar.open {
+  .cn-layout.cn-layout--conv-open .cn-sidebar.open {
     transform: translateX(0);
   }
 
@@ -1697,11 +1720,11 @@
   }
 
   .cn-msg-bubble {
-    max-width: 82%;
+    max-width: 84%;
   }
 
   .cn-neg-card {
-    max-width: 280px;
+    max-width: 100%;
   }
 
   .cn-chat-header__crop-tag {
@@ -1710,6 +1733,11 @@
 
   .cn-deal-banner {
     padding: 6px 12px;
+  }
+
+  /* Hide deal step text labels — keep only circles */
+  .cn-deal-step__label {
+    display: none;
   }
 
   .cn-call-modal__header,
@@ -1723,17 +1751,42 @@
   }
 
   .cn-call-stage__remote {
-    min-height: 320px;
+    min-height: 260px;
   }
 
   .cn-call-stage__local {
-    width: 132px;
-    right: 22px;
-    bottom: 22px;
+    width: 110px;
+    right: 20px;
+    bottom: 20px;
   }
 
   .cn-call-controls {
     flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+  }
+
+  /* Safe-area inset for notched phones */
+  .cn-input-panel {
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  /* Toolbar scrolls horizontally instead of overflowing */
+  .cn-input-toolbar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+
+  .cn-input-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cn-toolbar-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 }
 
@@ -1748,5 +1801,34 @@
 
   .cn-page-header__badges {
     display: none;
+  }
+
+  /* Compact page header */
+  .cn-page-header {
+    padding: 10px 14px;
+  }
+
+  .cn-page-header__title span {
+    display: none;
+  }
+
+  /* More padding-efficient messages area */
+  .cn-messages {
+    padding: 12px;
+  }
+
+  .cn-input-panel {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* Hide ticker label badge to save space */
+  .cn-ticker__label {
+    display: none;
+  }
+
+  /* Smaller ticker strip padding */
+  .cn-ticker {
+    padding: 6px 0;
   }
 }

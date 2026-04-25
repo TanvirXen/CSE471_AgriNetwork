@@ -1599,7 +1599,7 @@ function ChatNegotiationPage() {
       </div>
 
       {/* Main layout */}
-      <div className="cn-layout">
+      <div className={`cn-layout${activeConv ? " cn-layout--conv-open" : ""}`}>
         {sidebarOpen && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(52,78,65,0.3)", zIndex: 40 }}
             onClick={() => setSidebarOpen(false)} aria-hidden="true" />
