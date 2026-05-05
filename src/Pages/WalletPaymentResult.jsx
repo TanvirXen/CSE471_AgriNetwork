@@ -1,12 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { buildApiUrl } from '../config/network';
 
 const RESULT_COPY = {
   success: {
     title: 'Payment Successful',
-    message: 'Your wallet balance has been updated successfully.',
+    message: 'Your payment was completed successfully.',
     accent: '#166534',
     background: '#dcfce7',
   },
@@ -18,7 +16,7 @@ const RESULT_COPY = {
   },
   failed: {
     title: 'Payment Failed',
-    message: 'The payment could not be completed. No balance was added.',
+    message: 'The payment could not be completed.',
     accent: '#991b1b',
     background: '#fee2e2',
   },
@@ -37,39 +35,11 @@ const RESULT_COPY = {
 };
 
 const WalletPaymentResult = () => {
-  const { token, updateUserInfo } = useAuth();
   const [searchParams] = useSearchParams();
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const walletStatus = searchParams.get('wallet') || 'error';
   const tranId = searchParams.get('tran_id') || '';
   const result = RESULT_COPY[walletStatus] || RESULT_COPY.error;
-
-  useEffect(() => {
-    const refreshWallet = async () => {
-      if (walletStatus !== 'success' || !token) return;
-
-      setIsRefreshing(true);
-      try {
-        const res = await fetch(buildApiUrl('/api/auth/me'), {
-          headers: {
-            'x-auth-token': token,
-          },
-        });
-
-        if (res.ok) {
-          const latestUser = await res.json();
-          updateUserInfo(latestUser);
-        }
-      } catch (_err) {
-        // The success screen can still render even if the refresh request fails.
-      } finally {
-        setIsRefreshing(false);
-      }
-    };
-
-    refreshWallet();
-  }, [token, updateUserInfo, walletStatus]);
 
   return (
     <div
@@ -130,12 +100,6 @@ const WalletPaymentResult = () => {
           >
             Transaction ID: <strong>{tranId}</strong>
           </div>
-        )}
-
-        {isRefreshing && (
-          <p style={{ marginTop: '14px', color: '#166534', fontSize: '0.92rem' }}>
-            Refreshing your wallet balance...
-          </p>
         )}
 
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '28px' }}>
