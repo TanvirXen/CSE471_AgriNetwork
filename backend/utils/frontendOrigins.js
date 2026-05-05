@@ -6,6 +6,11 @@ const DEFAULT_FRONTEND_ORIGINS = [
   "http://[::1]:5173",
 ];
 
+const DEFAULT_TRUSTED_EXTERNAL_ORIGINS = [
+  "https://sandbox.sslcommerz.com",
+  "https://securepay.sslcommerz.com",
+];
+
 const DEFAULT_DEV_PORTS = new Set(["5173", "4173"]);
 
 const normalizeOrigin = (value) => {
@@ -66,6 +71,17 @@ const getExplicitFrontendOrigins = () => {
   return Array.from(new Set([...DEFAULT_FRONTEND_ORIGINS, ...normalizedOrigins]));
 };
 
+const getTrustedExternalOrigins = () => {
+  const configuredOrigins = (process.env.TRUSTED_EXTERNAL_ORIGINS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map(normalizeOrigin)
+    .filter(Boolean);
+
+  return Array.from(new Set([...DEFAULT_TRUSTED_EXTERNAL_ORIGINS, ...configuredOrigins]));
+};
+
 const isAllowedFrontendOrigin = (origin) => {
   if (!origin) return true;
   if (origin === "null") return true;
@@ -74,6 +90,10 @@ const isAllowedFrontendOrigin = (origin) => {
   if (!normalizedOrigin) return false;
 
   if (getExplicitFrontendOrigins().includes(normalizedOrigin)) {
+    return true;
+  }
+
+  if (getTrustedExternalOrigins().includes(normalizedOrigin)) {
     return true;
   }
 
@@ -104,5 +124,6 @@ module.exports = {
   buildCorsOriginHandler,
   getExplicitFrontendOrigins,
   getPreferredFrontendOrigin,
+  getTrustedExternalOrigins,
   isAllowedFrontendOrigin,
 };
