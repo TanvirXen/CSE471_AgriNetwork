@@ -20,6 +20,18 @@ const formatVideoDebug = (element) => {
   return `element: readyState=${element.readyState}, size=${element.videoWidth}x${element.videoHeight}, paused=${element.paused}`;
 };
 
+const bindMediaStream = (element, stream) => {
+  if (!element) return;
+
+  if (element.srcObject !== stream) {
+    element.srcObject = stream || null;
+  }
+
+  if (!stream) return;
+
+  element.play?.().catch(() => {});
+};
+
 const formatDuration = (secs) => {
   const m = Math.floor(secs / 60).toString().padStart(2, "0");
   const s = (secs % 60).toString().padStart(2, "0");
@@ -55,24 +67,20 @@ function VideoCallModal({
   const remoteAudioRef = useRef(null);
   const [localVideoDebug, setLocalVideoDebug] = useState("element: missing");
   const [remoteVideoDebug, setRemoteVideoDebug] = useState("element: missing");
+  const hasRemoteVideo = hasLiveTrack(remoteStream, "video");
+  const shouldShowLocalVideo = Boolean(localStream) && (!isCameraOff || isScreenSharing);
 
   useEffect(() => {
-    if (!localVideoRef.current) return;
-    localVideoRef.current.srcObject = localStream || null;
-    localVideoRef.current.play?.().catch(() => {});
-  }, [localStream]);
+    bindMediaStream(localVideoRef.current, shouldShowLocalVideo ? localStream : null);
+  }, [isOpen, localStream, shouldShowLocalVideo]);
 
   useEffect(() => {
-    if (!remoteVideoRef.current) return;
-    remoteVideoRef.current.srcObject = remoteStream || null;
-    remoteVideoRef.current.play?.().catch(() => {});
-  }, [remoteStream]);
+    bindMediaStream(remoteVideoRef.current, hasRemoteVideo ? remoteStream : null);
+  }, [hasRemoteVideo, isOpen, remoteStream, status]);
 
   useEffect(() => {
-    if (!remoteAudioRef.current) return;
-    remoteAudioRef.current.srcObject = remoteStream || null;
-    remoteAudioRef.current.play?.().catch(() => {});
-  }, [remoteStream]);
+    bindMediaStream(remoteAudioRef.current, remoteStream || null);
+  }, [isOpen, remoteStream, status]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -88,7 +96,6 @@ function VideoCallModal({
   const isCallActive = status === "waiting" || status === "connected" || status === "connecting";
   const isTerminal = status === "error" || status === "ending";
   const showIceWarning = iceState === "disconnected" || iceState === "failed";
-  const hasRemoteVideo = hasLiveTrack(remoteStream, "video");
 
   const statusText =
     status === "connected"
@@ -145,7 +152,7 @@ function VideoCallModal({
 
           {localStream && (
             <div className="cn-call-stage__local">
-              {(!isCameraOff || isScreenSharing) ? (
+              {shouldShowLocalVideo ? (
                 <video ref={localVideoRef} autoPlay playsInline muted className="cn-call-video" />
               ) : (
                 <div className="cn-call-local-placeholder">
