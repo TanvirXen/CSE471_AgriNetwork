@@ -6,7 +6,7 @@ const FarmerListing = require("./models/FarmerListing");
 
 require("dotenv").config();
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/AgriTest";
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/AgriNetwork";
 
 mongoose.connect(MONGO_URI).then(async () => {
     try {

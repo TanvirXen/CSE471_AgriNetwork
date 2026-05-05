@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('./models/User');
 const Review = require('./models/Review');
-mongoose.connect('mongodb://localhost:27017/AgriTest', { useNewUrlParser: true, useUnifiedTopology: true }).then(async () => {
+mongoose.connect('mongodb://localhost:27017/AgriNetwork', { useNewUrlParser: true, useUnifiedTopology: true }).then(async () => {
     console.log("Connected to DB.");
     const reviews = await Review.find().lean();
     console.log("REVIEWS:", JSON.stringify(reviews, null, 2));

@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const MarketProduct = require("./models/MarketProduct");
 const MarketStream = require("./models/MarketStream");
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/agrinetwork";
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/AgriNetwork";
 
 const STREAMS_DATA = [
     { 

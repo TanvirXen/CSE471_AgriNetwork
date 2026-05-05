@@ -1,8 +1,14 @@
 import { usePageTranslator } from '../hooks/usePageTranslator';
+import { useLocation } from 'react-router-dom';
 import './TranslateToggle.css';
 
 export default function TranslateToggle() {
+  const location = useLocation();
   const { language, status, toggleLanguage } = usePageTranslator();
+
+  if (location.pathname === '/payments/sslcommerz/result') {
+    return null;
+  }
 
   const loading = status === 'loading';
   const error = status === 'error';

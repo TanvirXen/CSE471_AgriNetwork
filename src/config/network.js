@@ -8,10 +8,8 @@ const configuredSocketUrl = trimTrailingSlash(
   import.meta.env.VITE_SOCKET_URL || configuredApiBaseUrl
 );
 
-export const API_BASE_URL = import.meta.env.DEV ? "" : configuredApiBaseUrl;
-export const SOCKET_URL = import.meta.env.DEV
-  ? getBrowserOrigin()
-  : configuredSocketUrl || getBrowserOrigin();
+export const API_BASE_URL = configuredApiBaseUrl || getBrowserOrigin();
+export const SOCKET_URL = configuredSocketUrl || API_BASE_URL || getBrowserOrigin();
 
 export const buildApiUrl = (path = "") => `${API_BASE_URL}${path}`;
 

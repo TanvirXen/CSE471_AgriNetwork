@@ -5,7 +5,7 @@ const User = require("./models/User");
 dotenv.config({ path: __dirname + '/.env' }); // Make sure it reads the correct .env
 
 mongoose
-  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/AgriTest", {
+  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/AgriNetwork", {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })

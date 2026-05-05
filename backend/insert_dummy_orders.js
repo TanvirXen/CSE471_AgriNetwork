@@ -3,7 +3,7 @@ require("dotenv").config();
 const Order = require("./models/Order");
 const User = require("./models/User");
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/AgriTest";
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/AgriNetwork";
 
 const getRandomStatus = () => {
     const statuses = [

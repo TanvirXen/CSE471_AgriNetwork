@@ -7,8 +7,26 @@ const { Server } = require("socket.io");
 const { buildCorsOriginHandler } = require("./utils/frontendOrigins");
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI ;
-//|| "mongodb://localhost:27017/AgriTest";
+const DEFAULT_DB_NAME = "AgriNetwork";
+
+const ensureDatabaseName = (mongoUri) => {
+  if (!mongoUri) return mongoUri;
+
+  try {
+    const parsedUri = new URL(mongoUri);
+
+    if (!parsedUri.pathname || parsedUri.pathname === "/") {
+      parsedUri.pathname = `/${DEFAULT_DB_NAME}`;
+      return parsedUri.toString();
+    }
+  } catch (_err) {
+    // Keep the original URI so mongoose can surface any real connection error.
+  }
+
+  return mongoUri;
+};
+
+const MONGO_URI = ensureDatabaseName(process.env.MONGO_URI);
 
 const server = http.createServer(app);
 const io = new Server(server, {

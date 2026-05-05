@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Order = require("./models/Order");
 
-mongoose.connect("mongodb+srv://tanvirishtiaq5:ahVBHv1yDNWMbW3v@cluster0.e2bw5nd.mongodb.net/AgriTest?appName=Cluster0");
+mongoose.connect("mongodb+srv://tanvirishtiaq5:ahVBHv1yDNWMbW3v@cluster0.e2bw5nd.mongodb.net/AgriNetwork?appName=Cluster0");
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 

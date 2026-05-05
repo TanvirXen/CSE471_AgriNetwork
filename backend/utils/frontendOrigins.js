@@ -68,6 +68,7 @@ const getExplicitFrontendOrigins = () => {
 
 const isAllowedFrontendOrigin = (origin) => {
   if (!origin) return true;
+  if (origin === "null") return true;
 
   const normalizedOrigin = normalizeOrigin(origin);
   if (!normalizedOrigin) return false;

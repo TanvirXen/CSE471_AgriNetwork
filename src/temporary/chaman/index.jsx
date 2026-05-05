@@ -648,9 +648,24 @@ function ChatNegotiationPage() {
   useEffect(() => {
     socketRef.current = io(SOCKET_URL, { transports: ["websocket"] });
 
-    if (user?._id) {
-      socketRef.current.emit("join_user", user._id);
-    }
+    socketRef.current.on("connect", () => {
+      if (user?._id) {
+        socketRef.current?.emit("join_user", user._id);
+      }
+
+      const currentConversationId = activeConvRef.current?.conversationId;
+      if (currentConversationId) {
+        socketRef.current?.emit("join_conversation", currentConversationId);
+      }
+
+      const currentCall = callStateRef.current;
+      if (currentCall?.roomId) {
+        socketRef.current?.emit("join_call_room", {
+          roomId: currentCall.roomId,
+          userId: user?._id,
+        });
+      }
+    });
 
     socketRef.current.on("receive_message", (data) => {
       const currentConv = activeConvRef.current;
@@ -841,19 +856,7 @@ function ChatNegotiationPage() {
 
     return () => socketRef.current?.disconnect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    user,
-    buildVideoCallMessage,
-    createPeerConnection,
-    ensureLocalMedia,
-    flushPendingIceCandidates,
-    preparePeerConnectionMedia,
-    resetCallResources,
-    sendRoomOffer,
-    updateCallMessageState,
-    upsertChatMessage,
-    applyCallState,
-  ]);
+  }, [user?._id]);
 
   // Handle incoming chat request from Map
   useEffect(() => {
@@ -945,6 +948,7 @@ function ChatNegotiationPage() {
       const call = payload.call;
       const inviteMessage = payload.inviteMessage;
       const resolvedConversationId = call.conversationId || activeConv?.conversationId || activeConv?.id;
+      const isCallCreator = getEntityId(call.createdBy) === user?._id?.toString();
 
       if (resolvedConversationId) {
         if (activeConv?.id?.startsWith("map-")) {
@@ -994,12 +998,12 @@ function ChatNegotiationPage() {
         callId: call.id,
         roomId: call.roomId,
         conversationId: call.conversationId,
-        isHost: false,
+        isHost: isCallCreator,
       });
 
       const roomJoin = await joinCallRoom(call.roomId);
       const isHost =
-        getEntityId(call.createdBy) === user?._id?.toString() ||
+        isCallCreator ||
         Number(roomJoin?.participantCount || 1) <= 1;
 
       applyCallState({
@@ -1010,6 +1014,12 @@ function ChatNegotiationPage() {
         conversationId: call.conversationId,
         isHost,
       });
+
+      // If the callee already joined before our state update landed, send the
+      // initial offer immediately instead of waiting for another room event.
+      if (isHost && Number(roomJoin?.participantCount || 0) > 1) {
+        await sendRoomOffer(call.roomId);
+      }
     } catch (err) {
       console.error("Failed to start video call:", err);
       setCallErrorMessage(getMediaAccessErrorMessage(err));
@@ -1042,6 +1052,7 @@ function ChatNegotiationPage() {
     joinCallRoom,
     resetCallResources,
     senderInitials,
+    sendRoomOffer,
     token,
     upsertChatMessage,
     applyCallState,

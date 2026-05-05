@@ -5,7 +5,7 @@ const { getPreferredFrontendOrigin } = require("../utils/frontendOrigins");
 
 const MIN_TOP_UP_AMOUNT = 10;
 const MAX_TOP_UP_AMOUNT = 500000;
-const PROFILE_PATH = "/dashboard/profile";
+const PAYMENT_RESULT_PATH = "/payments/sslcommerz/result";
 
 const normalizeAmount = (value) => {
   const parsed = Number(value);
@@ -48,8 +48,8 @@ const getFrontendBaseUrl = (req, payment) =>
 const getBackendBaseUrl = (req) =>
   getSafeUrl(process.env.BACKEND_PUBLIC_URL) || `${req.protocol}://${req.get("host")}`;
 
-const buildProfileRedirectUrl = (frontendBaseUrl, status, payment) => {
-  const redirectUrl = new URL(buildAbsoluteUrl(frontendBaseUrl, PROFILE_PATH));
+const buildPaymentRedirectUrl = (frontendBaseUrl, status, payment) => {
+  const redirectUrl = new URL(buildAbsoluteUrl(frontendBaseUrl, PAYMENT_RESULT_PATH));
   redirectUrl.searchParams.set("wallet", status);
 
   if (payment?.sslTranId) {
@@ -149,7 +149,31 @@ const handleBrowserRedirect = (req, res, status, payment) => {
     return res.status(200).send(`Payment ${status}`);
   }
 
-  return res.redirect(303, buildProfileRedirectUrl(frontendBaseUrl, status, payment));
+  const redirectUrl = buildPaymentRedirectUrl(frontendBaseUrl, status, payment);
+
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
+  if (String(req.method || "").toUpperCase() === "GET") {
+    return res.redirect(303, redirectUrl);
+  }
+
+  return res.status(200).type("html").send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content="0;url=${redirectUrl}" />
+    <title>Redirecting...</title>
+  </head>
+  <body>
+    <script>
+      window.location.replace(${JSON.stringify(redirectUrl)});
+    </script>
+    <p>Redirecting to the application...</p>
+    <p><a href="${redirectUrl}">Continue</a></p>
+  </body>
+</html>`);
 };
 
 exports.initiateWalletTopUp = async (req, res) => {

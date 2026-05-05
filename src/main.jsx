@@ -20,6 +20,7 @@ import NIDVerification from './Pages/NIDVerification'
 import DashboardLayout from './Components/DashboardLayout'
 import DashboardOverview from './Pages/DashboardOverview'
 import DashboardProfile from './Pages/DashboardProfile'
+import WalletPaymentResult from './Pages/WalletPaymentResult'
 import ChatbotPage from './Pages/ChatbotPage'
 import VendorDelivery from './Pages/VendorDelivery'
 import AiAdminReviews from './Pages/AiAdminReviews'
@@ -59,6 +60,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/complete-profile/:role" element={<CompleteProfile />} />
           <Route path="/verify-nid" element={<NIDVerification />} />
+          <Route path="/payments/sslcommerz/result" element={<WalletPaymentResult />} />
           <Route path="/tanvir" element={<TanvirPage />} />
           <Route path="/chaman" element={<ChamanPage />} />
           <Route path="/chaman/search" element={<SearchMapPage />} />
