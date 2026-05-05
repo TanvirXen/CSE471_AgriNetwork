@@ -1,7 +1,24 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const hasLiveTrack = (stream, kind) =>
   stream?.getTracks?.().some((track) => track.kind === kind && track.readyState === "live") || false;
+
+const formatTrackDebug = (stream, kind) => {
+  const track = stream?.getTracks?.().find((candidate) => candidate.kind === kind) || null;
+  if (!track) {
+    return `${kind}: missing`;
+  }
+
+  return `${kind}: ${track.readyState}, enabled=${track.enabled}, muted=${track.muted}`;
+};
+
+const formatVideoDebug = (element) => {
+  if (!element) {
+    return "element: missing";
+  }
+
+  return `element: readyState=${element.readyState}, size=${element.videoWidth}x${element.videoHeight}, paused=${element.paused}`;
+};
 
 const formatDuration = (secs) => {
   const m = Math.floor(secs / 60).toString().padStart(2, "0");
@@ -36,6 +53,8 @@ function VideoCallModal({
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);
+  const [localVideoDebug, setLocalVideoDebug] = useState("element: missing");
+  const [remoteVideoDebug, setRemoteVideoDebug] = useState("element: missing");
 
   useEffect(() => {
     if (!localVideoRef.current) return;
@@ -54,6 +73,15 @@ function VideoCallModal({
     remoteAudioRef.current.srcObject = remoteStream || null;
     remoteAudioRef.current.play?.().catch(() => {});
   }, [remoteStream]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setLocalVideoDebug(formatVideoDebug(localVideoRef.current));
+      setRemoteVideoDebug(formatVideoDebug(remoteVideoRef.current));
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -129,6 +157,14 @@ function VideoCallModal({
         </div>
 
         <div className="cn-call-controls">
+          <div className="cn-call-debug" aria-live="polite">
+            <div>{formatTrackDebug(localStream, "video")}</div>
+            <div>{formatTrackDebug(localStream, "audio")}</div>
+            <div>{localVideoDebug}</div>
+            <div>{formatTrackDebug(remoteStream, "video")}</div>
+            <div>{formatTrackDebug(remoteStream, "audio")}</div>
+            <div>{remoteVideoDebug}</div>
+          </div>
           {isCallActive && (
             <>
               <button
