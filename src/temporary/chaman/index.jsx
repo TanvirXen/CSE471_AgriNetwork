@@ -18,6 +18,10 @@ import { API_BASE_URL as API_BASE, SOCKET_URL } from "../../config/network";
 const ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
 const MEDIA_SECURE_CONTEXT_MESSAGE =
   "Camera and microphone permissions require HTTPS or localhost. Open AgriNetwork on https://<your-ip>:5173 or http://localhost:5173 and allow access.";
+const MEDIA_CAMERA_REQUIRED_MESSAGE =
+  "Video call needs camera access on both devices. Allow camera permission in the browser and try again.";
+const MEDIA_MIC_REQUIRED_MESSAGE =
+  "Video call needs microphone access on both devices. Allow microphone permission in the browser and try again.";
 
 const getMediaAccessErrorMessage = (error) => {
   if (typeof window !== "undefined" && !window.isSecureContext) {
@@ -34,6 +38,10 @@ const getMediaAccessErrorMessage = (error) => {
       return "Camera or microphone is busy in another app. Close that app and retry.";
     case "SecurityError":
       return MEDIA_SECURE_CONTEXT_MESSAGE;
+    case "VideoTrackMissingError":
+      return MEDIA_CAMERA_REQUIRED_MESSAGE;
+    case "AudioTrackMissingError":
+      return MEDIA_MIC_REQUIRED_MESSAGE;
     default:
       return error?.message || "Unable to access camera or microphone.";
   }
@@ -526,14 +534,38 @@ function ChatNegotiationPage() {
     }
 
     if (nextStream?.getTracks?.().length) {
+      const nextAudioTrack = getLiveTrackByKind(nextStream, "audio");
+      const nextVideoTrack = getLiveTrackByKind(nextStream, "video");
+
+      if (required && !nextVideoTrack) {
+        stopMediaStream(nextStream);
+        localStreamRef.current = null;
+        setLocalStream(null);
+        setLocalPreviewTrack(null);
+        setIsCameraOff(true);
+        const videoTrackError = new Error(MEDIA_CAMERA_REQUIRED_MESSAGE);
+        videoTrackError.name = "VideoTrackMissingError";
+        throw videoTrackError;
+      }
+
+      if (required && !nextAudioTrack) {
+        stopMediaStream(nextStream);
+        localStreamRef.current = null;
+        setLocalStream(null);
+        setLocalPreviewTrack(null);
+        setIsMuted(true);
+        const audioTrackError = new Error(MEDIA_MIC_REQUIRED_MESSAGE);
+        audioTrackError.name = "AudioTrackMissingError";
+        throw audioTrackError;
+      }
+
       localStreamRef.current = nextStream;
       setLocalStream(nextStream);
       setLocalPreviewTrack(
-        getLiveTrackByKind(screenStreamRef.current, "video") ||
-        getLiveTrackByKind(nextStream, "video")
+        getLiveTrackByKind(screenStreamRef.current, "video") || nextVideoTrack
       );
-      setIsMuted(!getLiveTrackByKind(nextStream, "audio"));
-      setIsCameraOff(!getLiveTrackByKind(nextStream, "video"));
+      setIsMuted(!nextAudioTrack);
+      setIsCameraOff(!nextVideoTrack);
       return nextStream;
     }
 
@@ -1697,7 +1729,7 @@ function ChatNegotiationPage() {
         isOpen={callState.isOpen}
         status={callState.status}
         conversation={activeConv}
-        localStream={localPreviewStream}
+        localStream={isScreenSharing ? screenStreamRef.current : localStream}
         remoteStream={remoteStream}
         isMuted={isMuted}
         isCameraOff={isCameraOff}

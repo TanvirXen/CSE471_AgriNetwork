@@ -1,5 +1,8 @@
 import { useEffect, useRef } from "react";
 
+const hasLiveTrack = (stream, kind) =>
+  stream?.getTracks?.().some((track) => track.kind === kind && track.readyState === "live") || false;
+
 const formatDuration = (secs) => {
   const m = Math.floor(secs / 60).toString().padStart(2, "0");
   const s = (secs % 60).toString().padStart(2, "0");
@@ -57,7 +60,7 @@ function VideoCallModal({
   const isCallActive = status === "waiting" || status === "connected" || status === "connecting";
   const isTerminal = status === "error" || status === "ending";
   const showIceWarning = iceState === "disconnected" || iceState === "failed";
-  const hasRemoteMedia = Boolean(remoteStream?.getTracks?.().length);
+  const hasRemoteVideo = hasLiveTrack(remoteStream, "video");
 
   const statusText =
     status === "connected"
@@ -100,7 +103,7 @@ function VideoCallModal({
 
         <div className="cn-call-stage">
           <div className="cn-call-stage__remote">
-            {hasRemoteMedia ? (
+            {hasRemoteVideo ? (
               <video ref={remoteVideoRef} autoPlay playsInline muted className="cn-call-video" />
             ) : (
               <div className="cn-call-placeholder">
