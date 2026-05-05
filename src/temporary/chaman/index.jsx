@@ -814,7 +814,6 @@ function ChatNegotiationPage() {
 
       try {
         const pc = peerConnectionRef.current || createPeerConnection(data.roomId);
-        await preparePeerConnectionMedia(pc);
         const incomingOffer = new RTCSessionDescription(data.offer);
 
         if (pc.signalingState !== "stable") {
@@ -823,6 +822,7 @@ function ChatNegotiationPage() {
         }
 
         await pc.setRemoteDescription(incomingOffer);
+        await preparePeerConnectionMedia(pc);
         await flushPendingIceCandidates();
 
         const answer = await pc.createAnswer();
